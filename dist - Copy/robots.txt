@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://speakeasy.com/sitemap.xml
