@@ -51,10 +51,10 @@ export default function About() {
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800"
+            className="p-6 rounded-2xl bg-gradient-to-br from-blue-50 to-indigo-50 dark:bg-gray-800 dark:from-gray-800 dark:to-gray-800 border border-slate-200/80 dark:border-slate-800"
           >
-            <div className="w-12 h-12 rounded-xl bg-indigo-50 dark:bg-indigo-950/30 flex items-center justify-center mb-4">
-              <Target className="text-indigo-600" size={24} />
+            <div className="w-12 h-12 rounded-xl bg-indigo-100 dark:bg-indigo-950/50 flex items-center justify-center mb-4">
+              <Target className="text-indigo-600 dark:text-indigo-400" size={24} />
             </div>
             <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">Our Mission</h3>
             <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
@@ -66,10 +66,10 @@ export default function About() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ delay: 0.1 }}
-            className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800"
+            className="p-6 rounded-2xl bg-gradient-to-br from-blue-50 to-indigo-50 dark:bg-gray-800 dark:from-gray-800 dark:to-gray-800 border border-slate-200/80 dark:border-slate-800"
           >
-            <div className="w-12 h-12 rounded-xl bg-purple-50 dark:bg-purple-950/30 flex items-center justify-center mb-4">
-              <Eye className="text-purple-600" size={24} />
+            <div className="w-12 h-12 rounded-xl bg-purple-100 dark:bg-purple-950/50 flex items-center justify-center mb-4">
+              <Eye className="text-purple-600 dark:text-purple-400" size={24} />
             </div>
             <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">Our Vision</h3>
             <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
@@ -88,12 +88,12 @@ export default function About() {
           <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-6 text-center">What We Stand For</h2>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {[
-              { icon: <Users className="text-indigo-600" size={20} />, title: 'Community', desc: 'Learning is better together. We build for real people with real needs.' },
-              { icon: <Globe className="text-purple-600" size={20} />, title: 'Accessibility', desc: 'Free, quality English resources for everyone, everywhere.' },
-              { icon: <BookOpen className="text-pink-600" size={20} />, title: 'Practicality', desc: 'Real conversations, not textbook English. Learn what you\'ll actually use.' },
+              { icon: <Users className="text-indigo-600 dark:text-indigo-400" size={20} />, title: 'Community', desc: 'Learning is better together. We build for real people with real needs.' },
+              { icon: <Globe className="text-purple-600 dark:text-purple-400" size={20} />, title: 'Accessibility', desc: 'Free, quality English resources for everyone, everywhere.' },
+              { icon: <BookOpen className="text-pink-600 dark:text-pink-400" size={20} />, title: 'Practicality', desc: 'Real conversations, not textbook English. Learn what you\'ll actually use.' },
             ].map((v, i) => (
-              <div key={i} className="p-5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 text-center">
-                <div className="w-10 h-10 rounded-lg bg-slate-50 dark:bg-slate-800 flex items-center justify-center mx-auto mb-3">
+              <div key={i} className="p-5 rounded-xl bg-gradient-to-br from-blue-50 to-indigo-50 dark:bg-gray-800 dark:from-gray-800 dark:to-gray-800 border border-slate-200/80 dark:border-slate-800 text-center">
+                <div className="w-10 h-10 rounded-lg bg-white/50 dark:bg-slate-700/50 flex items-center justify-center mx-auto mb-3">
                   {v.icon}
                 </div>
                 <h3 className="font-semibold text-slate-900 dark:text-white mb-1">{v.title}</h3>

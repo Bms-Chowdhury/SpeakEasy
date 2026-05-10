@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Mail, MapPin, Send, CheckCircle, Twitter, Youtube, Instagram } from 'lucide-react';
+import { Mail, MapPin, Send, CheckCircle, Twitter, Youtube, Instagram, Facebook } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export default function Contact() {
@@ -126,42 +126,48 @@ export default function Contact() {
             transition={{ delay: 0.1 }}
             className="md:col-span-2 space-y-6"
           >
-            <div className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800">
+            {/* Contact Info Card - UPDATED BACKGROUND */}
+            <div className="p-6 rounded-2xl bg-blue-50 dark:bg-gray-800 border border-slate-200/80 dark:border-slate-800">
               <h3 className="font-semibold text-slate-900 dark:text-white mb-4">Contact Info</h3>
               <div className="space-y-4">
                 <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-950/30 flex items-center justify-center shrink-0">
-                    <Mail size={14} className="text-indigo-600" />
+                  <div className="w-8 h-8 rounded-lg bg-indigo-100 dark:bg-indigo-950/50 flex items-center justify-center shrink-0">
+                    <Mail size={14} className="text-indigo-600 dark:text-indigo-400" />
                   </div>
                   <div>
                     <p className="text-sm font-medium text-slate-900 dark:text-white">Email</p>
-                    <p className="text-sm text-slate-500">hello@speakeasy.com</p>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">hello@speakeasy.com</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-purple-50 dark:bg-purple-950/30 flex items-center justify-center shrink-0">
-                    <MapPin size={14} className="text-purple-600" />
+                  <div className="w-8 h-8 rounded-lg bg-purple-100 dark:bg-purple-950/50 flex items-center justify-center shrink-0">
+                    <MapPin size={14} className="text-purple-600 dark:text-purple-400" />
                   </div>
                   <div>
                     <p className="text-sm font-medium text-slate-900 dark:text-white">Location</p>
-                    <p className="text-sm text-slate-500">Available worldwide 🌍</p>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">Available worldwide 🌍</p>
                   </div>
                 </div>
               </div>
             </div>
 
-            <div className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800">
+            {/* Follow Us Card - UPDATED BACKGROUND */}
+            <div className="p-6 rounded-2xl bg-blue-50 dark:bg-gray-800 border border-slate-200/80 dark:border-slate-800">
               <h3 className="font-semibold text-slate-900 dark:text-white mb-4">Follow Us</h3>
               <div className="space-y-3">
-                <a href="#" className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+                <a href="#" className="flex items-center gap-3 p-2 rounded-lg hover:bg-white/50 dark:hover:bg-slate-700/50 transition-colors">
+                  <Facebook size={16} className="text-blue-500" />
+                  <span className="text-sm text-slate-600 dark:text-slate-400">Facebook</span>
+                </a>
+                <a href="#" className="flex items-center gap-3 p-2 rounded-lg hover:bg-white/50 dark:hover:bg-slate-700/50 transition-colors">
                   <Twitter size={16} className="text-blue-500" />
                   <span className="text-sm text-slate-600 dark:text-slate-400">Twitter</span>
                 </a>
-                <a href="#" className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+                <a href="#" className="flex items-center gap-3 p-2 rounded-lg hover:bg-white/50 dark:hover:bg-slate-700/50 transition-colors">
                   <Youtube size={16} className="text-red-500" />
                   <span className="text-sm text-slate-600 dark:text-slate-400">YouTube</span>
                 </a>
-                <a href="#" className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+                <a href="#" className="flex items-center gap-3 p-2 rounded-lg hover:bg-white/50 dark:hover:bg-slate-700/50 transition-colors">
                   <Instagram size={16} className="text-pink-500" />
                   <span className="text-sm text-slate-600 dark:text-slate-400">Instagram</span>
                 </a>

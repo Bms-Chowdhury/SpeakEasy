@@ -5,24 +5,34 @@ import tailwindcss from '@tailwindcss/vite'
 // https://vite.dev/config/
 export default defineConfig(async () => {
   const plugins = [react(), tailwindcss()];
+
   try {
     // @ts-ignore
     const m = await import('./.vite-source-tags.js');
     plugins.push(m.sourceTags());
   } catch {}
-  
-  return { 
+
+  return {
+    base: '/',
+
     plugins,
+
     build: {
       rollupOptions: {
         output: {
           manualChunks: {
-            // Simple split: vendor vs app code
-            vendor: ['react', 'react-dom', 'react-router-dom', 'framer-motion', 'lucide-react'],
+            vendor: [
+              'react',
+              'react-dom',
+              'react-router-dom',
+              'framer-motion',
+              'lucide-react'
+            ],
           },
         },
       },
-      chunkSizeWarningLimit: 1000, // Increase warning threshold
+
+      chunkSizeWarningLimit: 1000,
     },
   }
 })

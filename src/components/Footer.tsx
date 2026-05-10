@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Heart, ArrowUp, Mail, Twitter, Youtube, Instagram } from 'lucide-react';
+import { Heart, ArrowUp, Mail, Twitter, Youtube, Instagram, Facebook } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
 export default function Footer() {
@@ -57,6 +57,9 @@ export default function Footer() {
               </p>
               <div className="flex items-center gap-3 mt-4">
                 <a href="#" className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-colors">
+                  <Facebook size={16} />
+                </a>
+                <a href="#" className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-colors">
                   <Twitter size={16} />
                 </a>
                 <a href="#" className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-colors">
@@ -65,7 +68,7 @@ export default function Footer() {
                 <a href="#" className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-colors">
                   <Instagram size={16} />
                 </a>
-                <a href="#" className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-colors">
+                <a href="m2bmsbabu@gmail.com" className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-colors">
                   <Mail size={16} />
                 </a>
               </div>
