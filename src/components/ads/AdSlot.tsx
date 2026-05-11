@@ -1,16 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
 
-/**
- * Base ad slot component — CLS-safe with fixed placeholder dimensions.
- * Lazy-loads via IntersectionObserver so ads never block rendering.
- *
- * Props:
- * - slotId: unique identifier for the ad slot (e.g. "home-top-banner")
- * - width / height: placeholder dimensions to prevent layout shift
- * - className: extra styling
- * - label: optional label shown in the ad placeholder
- */
-
 interface AdSlotProps {
   slotId: string;
   width?: string;
@@ -18,6 +7,9 @@ interface AdSlotProps {
   className?: string;
   label?: string;
   format?: 'horizontal' | 'vertical' | 'rectangle' | 'auto';
+  adKey?: string;      // Adsterra key
+  adWidth?: number;    // e.g., 728
+  adHeight?: number;   // e.g., 90
 }
 
 export default function AdSlot({
@@ -27,12 +19,15 @@ export default function AdSlot({
   className = '',
   label = 'Advertisement',
   format = 'horizontal',
+  adKey = '7ba9fed2fa5b33b663af8cde4b27dcec', // example desktop
+  adWidth = 728,
+  adHeight = 90,
 }: AdSlotProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [isVisible, setIsVisible] = useState(false);
-  const [isLoaded, setIsLoaded] = useState(false);
+  const injected = useRef(false);
 
-  // Lazy load: only render ad content when slot enters viewport
+  // IntersectionObserver for lazy loading
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
@@ -44,19 +39,47 @@ export default function AdSlot({
           observer.disconnect();
         }
       },
-      { rootMargin: '200px 0px' } // Start loading 200px before visible
+      { rootMargin: '200px 0px' }
     );
 
     observer.observe(el);
     return () => observer.disconnect();
   }, []);
 
-  // Simulate ad load delay (replace with real ad SDK callback)
+  // Inject Adsterra when visible
   useEffect(() => {
     if (!isVisible) return;
-    const timer = setTimeout(() => setIsLoaded(true), 300);
-    return () => clearTimeout(timer);
-  }, [isVisible]);
+    if (injected.current) return;
+
+    const container = containerRef.current;
+    if (!container) return;
+
+    container.innerHTML = "";
+
+    (window as any).atOptions = {
+      key: adKey,
+      format: "iframe",
+      height: adHeight,
+      width: adWidth,
+      params: {},
+    };
+
+    const script1 = document.createElement("script");
+    script1.setAttribute("data-cfasync", "false");
+    script1.textContent = `
+      window.atOptions = ${JSON.stringify((window as any).atOptions)};
+    `;
+
+    const script2 = document.createElement("script");
+    script2.src = `https://www.highperformanceformat.com/${adKey}/invoke.js`;
+    script2.async = true;
+    script2.setAttribute("data-cfasync", "false");
+
+    container.appendChild(script1);
+    container.appendChild(script2);
+
+    injected.current = true;
+  }, [isVisible, adKey, adHeight, adWidth]);
 
   return (
     <div
@@ -65,39 +88,9 @@ export default function AdSlot({
       data-ad-slot={slotId}
       data-ad-format={format}
       className={`ad-slot relative overflow-hidden ${className}`}
-      style={{
-        width,
-        minHeight: height,
-        // Fixed min-height prevents CLS — ad fills this space when loaded
-      }}
+      style={{ width, minHeight: height }}
     >
-      {isVisible ? (
-        <div className="w-full h-full flex items-center justify-center">
-          {isLoaded ? (
-            /* 
-              === PRODUCTION AD INTEGRATION ===
-              Replace this div with your real ad code:
-
-              For Google AdSense:
-              <ins className="adsbygoogle"
-                style="display:block"
-                data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"
-                data-ad-slot="XXXXXXXXXX"
-                data-ad-format="auto"
-                data-full-width-responsive="true"
-              />
-              <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
-            */
-            <div className="w-full h-full bg-slate-50 dark:bg-slate-800/50 border border-dashed border-slate-200 dark:border-slate-700 rounded-lg flex flex-col items-center justify-center gap-1.5 px-4">
-              <span className="text-[10px] font-medium uppercase tracking-widest text-slate-400 dark:text-slate-500">{label}</span>
-              <span className="text-[9px] text-slate-300 dark:text-slate-600">{slotId}</span>
-            </div>
-          ) : (
-            <div className="w-full h-full bg-slate-50/50 dark:bg-slate-800/20 rounded-lg animate-pulse" />
-          )}
-        </div>
-      ) : (
-        // Placeholder maintains layout space before lazy load triggers
+      {!isVisible && (
         <div className="w-full h-full bg-transparent" />
       )}
     </div>
