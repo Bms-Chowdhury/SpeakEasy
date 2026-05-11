@@ -1,37 +1,43 @@
-import AdSlot from './AdSlot';
-import { useIsMobile } from '../../hooks/useDevice';
+import { useEffect } from "react";
 
-/**
- * Renders an ad slot ONLY on mobile devices.
- * Returns null on desktop — zero DOM footprint.
- */
-
-interface MobileAdSlotProps {
+type Props = {
   slotId: string;
-  height?: string;
-  className?: string;
+  height: string;
   label?: string;
-  format?: 'horizontal' | 'vertical' | 'rectangle' | 'auto';
-}
+};
 
-export default function MobileAdSlot({
-  slotId,
-  height = '100px',
-  className = '',
-  label = 'Advertisement',
-  format = 'horizontal',
-}: MobileAdSlotProps) {
-  const isMobile = useIsMobile();
+export default function MobileAdSlot({ slotId, height }: Props) {
+  useEffect(() => {
+    const container = document.getElementById(slotId);
+    if (!container) return;
 
-  if (!isMobile) return null;
+    container.innerHTML = "";
+
+    const script1 = document.createElement("script");
+    script1.innerHTML = `
+      atOptions = {
+        key: "6f8260d71c372d2e4129753f82d54d6a",
+        format: "iframe",
+        height: 50,
+        width: 320,
+        params: {}
+      };
+    `;
+
+    const script2 = document.createElement("script");
+    script2.src =
+      "https://www.highperformanceformat.com/6f8260d71c372d2e4129753f82d54d6a/invoke.js";
+    script2.async = true;
+
+    container.appendChild(script1);
+    container.appendChild(script2);
+  }, [slotId]);
 
   return (
-    <AdSlot
-      slotId={slotId}
-      height={height}
-      className={className}
-      label={label}
-      format={format}
+    <div
+      id={slotId}
+      style={{ height }}
+      className="flex justify-center items-center"
     />
   );
 }

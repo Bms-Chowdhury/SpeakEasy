@@ -1,40 +1,43 @@
-import AdSlot from './AdSlot';
-import { useIsDesktop } from '../../hooks/useDevice';
+import { useEffect } from "react";
 
-/**
- * Renders an ad slot ONLY on desktop devices.
- * Returns null on mobile — zero DOM footprint.
- */
-
-interface DesktopAdSlotProps {
+type Props = {
   slotId: string;
-  height?: string;
-  width?: string;
-  className?: string;
+  height: string;
   label?: string;
-  format?: 'horizontal' | 'vertical' | 'rectangle' | 'auto';
-}
+};
 
-export default function DesktopAdSlot({
-  slotId,
-  height = '90px',
-  width = '100%',
-  className = '',
-  label = 'Advertisement',
-  format = 'horizontal',
-}: DesktopAdSlotProps) {
-  const isDesktop = useIsDesktop();
+export default function DesktopAdSlot({ slotId, height }: Props) {
+  useEffect(() => {
+    const container = document.getElementById(slotId);
+    if (!container) return;
 
-  if (!isDesktop) return null;
+    container.innerHTML = "";
+
+    const script1 = document.createElement("script");
+    script1.innerHTML = `
+      atOptions = {
+        key: "7ba9fed2fa5b33b663af8cde4b27dcec",
+        format: "iframe",
+        height: 90,
+        width: 728,
+        params: {}
+      };
+    `;
+
+    const script2 = document.createElement("script");
+    script2.src =
+      "https://www.highperformanceformat.com/7ba9fed2fa5b33b663af8cde4b27dcec/invoke.js";
+    script2.async = true;
+
+    container.appendChild(script1);
+    container.appendChild(script2);
+  }, [slotId]);
 
   return (
-    <AdSlot
-      slotId={slotId}
-      height={height}
-      width={width}
-      className={className}
-      label={label}
-      format={format}
+    <div
+      id={slotId}
+      style={{ height }}
+      className="flex justify-center items-center"
     />
   );
 }
