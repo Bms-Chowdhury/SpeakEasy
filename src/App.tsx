@@ -24,29 +24,29 @@ function ScrollToTop() {
 // ─── Visitor Tracker Component ─────────────────────────────────
 function VisitorTracker() {
   const location = useLocation();
-  
+
   useEffect(() => {
     const trackPageView = async () => {
       // Don't track admin pages
       if (location.pathname.startsWith('/admin')) return;
-      
+
       // Get or create visitor ID
       let visitorId = localStorage.getItem('visitor_id');
       if (!visitorId) {
         visitorId = crypto.randomUUID();
         localStorage.setItem('visitor_id', visitorId);
       }
-      
+
       // Get country (optional - can fail gracefully)
       let country = 'Unknown';
       try {
         const response = await fetch('https://ipapi.co/json/');
         const data = await response.json();
         country = data.country_name || 'Unknown';
-      } catch (error) {
+      } catch {
         // Silent fail - country will remain 'Unknown'
       }
-      
+
       // Detect device type
       const ua = navigator.userAgent;
       let deviceType = 'desktop';
@@ -55,26 +55,48 @@ function VisitorTracker() {
       } else if (/Mobile|Android|iPhone|iPod|IEMobile|BlackBerry|Kindle|Silk-Accelerated|hpwOS|webOS|Opera Mobi|Opera Mini/i.test(ua)) {
         deviceType = 'mobile';
       }
-      
+
+      // ── Resolve post_id from slug if on a post page ──────────
+      // Matches /blog/:slug and /scripts/:slug
+      let postId: string | null = null;
+      const pathParts = location.pathname.split('/').filter(Boolean);
+      // pathParts[0] = 'blog' | 'scripts', pathParts[1] = slug
+      if (
+        pathParts.length === 2 &&
+        (pathParts[0] === 'blog' || pathParts[0] === 'scripts') &&
+        pathParts[1]
+      ) {
+        try {
+          const { data: postData } = await supabase
+            .from('posts')
+            .select('id')
+            .eq('slug', pathParts[1])
+            .maybeSingle(); // won't throw if not found
+          postId = postData?.id ?? null;
+        } catch {
+          // Silent fail - postId will remain null
+        }
+      }
+
       // Track the page view
       try {
         await supabase.from('page_views').insert({
-          post_id: null,
+          post_id: postId,           // ← real post ID or null for non-post pages
           page_url: location.pathname,
           visitor_id: visitorId,
-          country: country,
+          country,
           device_type: deviceType,
-          viewed_at: new Date().toISOString()
+          viewed_at: new Date().toISOString(),
         });
-        console.log('Page view tracked:', location.pathname);
+        console.log('Page view tracked:', location.pathname, '| post_id:', postId);
       } catch (error) {
         console.error('Failed to track page view:', error);
       }
     };
-    
+
     trackPageView();
   }, [location.pathname]);
-  
+
   return null;
 }
 
