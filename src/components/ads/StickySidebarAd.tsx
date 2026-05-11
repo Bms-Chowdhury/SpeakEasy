@@ -1,25 +1,23 @@
 import { useEffect, useRef, useState } from 'react';
 import AdSlot from './AdSlot';
-import { useIsDesktop } from '../../hooks/useDevice';
-
-/**
- * Sticky sidebar ad for desktop — stays visible while scrolling article.
- * Highest RPM desktop placement.
- *
- * - Only renders on desktop (md+ breakpoint)
- * - Sticks to top of sidebar with offset for navbar
- * - Stops sticking when reaching end of sidebar container
- * - 300px wide standard ad size
- */
 
 export default function StickySidebarAd() {
-  const isDesktop = useIsDesktop();
   const sentinelRef = useRef<HTMLDivElement>(null);
   const [isStuck, setIsStuck] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(false);
 
+  // Check desktop via CSS media query (not JS breakpoint)
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 1024px)');
+    setIsDesktop(mq.matches);
+    const handler = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
+
+  // Sticky detection
   useEffect(() => {
     if (!isDesktop) return;
-
     const sentinel = sentinelRef.current;
     if (!sentinel) return;
 
@@ -27,7 +25,7 @@ export default function StickySidebarAd() {
       ([entry]) => {
         setIsStuck(!entry.isIntersecting);
       },
-      { threshold: 0, rootMargin: '-80px 0px 0px 0px' } // 80px = navbar height offset
+      { threshold: 0, rootMargin: '-80px 0px 0px 0px' }
     );
 
     observer.observe(sentinel);
@@ -38,35 +36,28 @@ export default function StickySidebarAd() {
 
   return (
     <aside className="hidden lg:block w-[300px] shrink-0">
-      {/* Sentinel — detects when sidebar top reaches navbar */}
       <div ref={sentinelRef} className="h-0" />
-
-      <div
-        className={`space-y-6 ${
-          isStuck
-            ? 'fixed top-20 w-[300px]'
-            : ''
-        }`}
-      >
-        {/* Primary sidebar ad */}
+      <div className={`space-y-6 ${isStuck ? 'fixed top-20 w-[300px]' : ''}`}>
         <div className="rounded-xl overflow-hidden border border-slate-100 dark:border-slate-800">
           <AdSlot
             slotId="desktop-sidebar-primary"
-            height="250px"
             width="300px"
+            height="250px"
+            adKey="7ba9fed2fa5b33b663af8cde4b27dcec"
+            adWidth={300}
+            adHeight={250}
             label="Advertisement"
-            format="rectangle"
           />
         </div>
-
-        {/* Secondary sidebar ad — appears lower */}
         <div className="rounded-xl overflow-hidden border border-slate-100 dark:border-slate-800">
           <AdSlot
             slotId="desktop-sidebar-secondary"
-            height="600px"
             width="300px"
+            height="600px"
+            adKey="7ba9fed2fa5b33b663af8cde4b27dcec"
+            adWidth={300}
+            adHeight={600}
             label="Advertisement"
-            format="vertical"
           />
         </div>
       </div>

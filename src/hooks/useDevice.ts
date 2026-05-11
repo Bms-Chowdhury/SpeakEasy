@@ -1,30 +1,29 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
-export type Device = 'mobile' | 'desktop';
-
-const MOBILE_BREAKPOINT = 768;
-
-export function useDevice(): Device {
-  const [device, setDevice] = useState<Device>(() =>
-    typeof window !== 'undefined' && window.innerWidth < MOBILE_BREAKPOINT ? 'mobile' : 'desktop'
-  );
+export function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
-    const handleResize = () => {
-      setDevice(window.innerWidth < MOBILE_BREAKPOINT ? 'mobile' : 'desktop');
-    };
-
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    const mq = window.matchMedia('(max-width: 767px)');
+    setIsMobile(mq.matches);
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
   }, []);
 
-  return device;
+  return isMobile;
 }
 
-export function useIsMobile(): boolean {
-  return useDevice() === 'mobile';
-}
+export function useIsDesktop() {
+  const [isDesktop, setIsDesktop] = useState(false);
 
-export function useIsDesktop(): boolean {
-  return useDevice() === 'desktop';
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 1024px)');
+    setIsDesktop(mq.matches);
+    const handler = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
+
+  return isDesktop;
 }

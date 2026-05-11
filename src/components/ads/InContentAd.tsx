@@ -1,12 +1,5 @@
 import AdSlot from './AdSlot';
 
-/**
- * In-content ad — inserted between paragraphs inside article body.
- * CLS-safe with fixed height. Clean separator styling.
- *
- * Usage: <InContentAd slotId="post-after-para-1" />
- */
-
 interface InContentAdProps {
   slotId: string;
   position?: 'top' | 'middle' | 'bottom';
@@ -14,9 +7,16 @@ interface InContentAdProps {
 
 export default function InContentAd({ slotId, position = 'middle' }: InContentAdProps) {
   const heightMap = {
-    top: '100px',
+    top: '90px',
     middle: '120px',
-    bottom: '100px',
+    bottom: '90px',
+  };
+
+  // Different ad keys for different positions (optional)
+  const keyMap = {
+    top: '7ba9fed2fa5b33b663af8cde4b27dcec',
+    middle: '7ba9fed2fa5b33b663af8cde4b27dcec',
+    bottom: '7ba9fed2fa5b33b663af8cde4b27dcec',
   };
 
   return (
@@ -24,8 +24,10 @@ export default function InContentAd({ slotId, position = 'middle' }: InContentAd
       <AdSlot
         slotId={slotId}
         height={heightMap[position]}
+        adKey={keyMap[position]}
+        adWidth={728}
+        adHeight={position === 'middle' ? 120 : 90}
         label="Advertisement"
-        format="auto"
         className="rounded-lg"
       />
     </div>
