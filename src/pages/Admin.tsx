@@ -1,11 +1,11 @@
 import { supabase } from '../lib/supabase';
-import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, FileText, Plus, FilePen, Eye, EyeOff, Trash2, Edit3,
   Search, Bell, LogOut, Save, X, CheckCircle, AlertTriangle,
   BarChart3, Globe, Settings, TrendingUp, Users, MousePointerClick, Clock,
-  Menu, ChevronRight, ArrowUpRight, Smartphone, Monitor, Tablet, RefreshCw
+  Menu, ArrowUpRight, Smartphone, Monitor, Tablet, RefreshCw
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuthStore } from '../store/authStore';
@@ -31,70 +31,75 @@ interface AnalyticsData {
   liveVisitors: number;
 }
 
-// ─── Analytics Service (Integrated) ─────────────────────────────
+// ─── Analytics Service ───────────────────────────────────────────
 const analyticsService = {
   async getAnalytics(days: number = 30): Promise<AnalyticsData> {
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
-    
+
     try {
-      // 1. Total Views & Unique Visitors
-      const { data: viewsData, count: totalViews } = await supabase
-        .from('page_views')
-        .select('visitor_id', { count: 'exact', head: false })
-        .gte('viewed_at', startDate.toISOString());
-      
-      const uniqueVisitors = viewsData ? new Set(viewsData.map(v => v.visitor_id)).size : 0;
-      
-      // 2. Views Over Time
-      const { data: timeData } = await supabase
-        .from('page_views')
-        .select('viewed_at')
-        .gte('viewed_at', startDate.toISOString())
-        .order('viewed_at', { ascending: true });
-      
-      const viewsByDay = this.groupViewsByDay(timeData || [], days);
-      
-      // 3. Top Countries
-      const { data: countryData } = await supabase
-        .from('page_views')
-        .select('country')
-        .gte('viewed_at', startDate.toISOString());
-      
-      const topCountries = this.calculateTopCountries(countryData || [], totalViews || 0);
-      
-      // 4. Top Posts
-      const { data: postViews } = await supabase
-        .from('page_views')
-        .select('post_id')
-        .not('post_id', 'is', null)
-        .gte('viewed_at', startDate.toISOString());
-      
-      const topPosts = await this.calculateTopPosts(postViews || []);
-      
-      // 5. Device Statistics
-      const { data: deviceData } = await supabase
-        .from('page_views')
-        .select('device_type')
-        .gte('viewed_at', startDate.toISOString());
-      
-      const deviceStats = this.calculateDeviceStats(deviceData || []);
-      
-      // 6. Average Session Time
+      // Run all independent queries in parallel for speed
+      const [viewsResult, timeResult, countryResult, postViewsResult, deviceResult] = await Promise.all([
+        // 1. Total Views + Unique Visitors
+        supabase
+          .from('page_views')
+          .select('visitor_id', { count: 'exact', head: false })
+          .gte('viewed_at', startDate.toISOString()),
+
+        // 2. Views Over Time
+        supabase
+          .from('page_views')
+          .select('viewed_at')
+          .gte('viewed_at', startDate.toISOString())
+          .order('viewed_at', { ascending: true }),
+
+        // 3. Countries
+        supabase
+          .from('page_views')
+          .select('country')
+          .gte('viewed_at', startDate.toISOString()),
+
+        // 4. Post views (only rows with a real post_id)
+        supabase
+          .from('page_views')
+          .select('post_id')
+          .not('post_id', 'is', null)
+          .gte('viewed_at', startDate.toISOString()),
+
+        // 5. Device types
+        supabase
+          .from('page_views')
+          .select('device_type')
+          .gte('viewed_at', startDate.toISOString()),
+      ]);
+
+      // Log any errors to help debug RLS / permission issues
+      if (viewsResult.error)     console.error('[analytics] views error:', viewsResult.error);
+      if (timeResult.error)      console.error('[analytics] time error:', timeResult.error);
+      if (countryResult.error)   console.error('[analytics] country error:', countryResult.error);
+      if (postViewsResult.error) console.error('[analytics] postViews error:', postViewsResult.error);
+      if (deviceResult.error)    console.error('[analytics] device error:', deviceResult.error);
+
+      const totalViews    = viewsResult.count ?? 0;
+      const viewsData     = viewsResult.data ?? [];
+      const uniqueVisitors = new Set(viewsData.map(v => v.visitor_id)).size;
+
+      const viewsByDay    = this.groupViewsByDay(timeResult.data ?? [], days);
+      const topCountries  = this.calculateTopCountries(countryResult.data ?? [], totalViews);
+      const topPosts      = await this.calculateTopPosts(postViewsResult.data ?? []);
+      const deviceStats   = this.calculateDeviceStats(deviceResult.data ?? []);
       const avgSessionTime = await this.calculateAvgSessionTime(startDate);
-      
-      // 7. Live Visitors (last 5 minutes)
-      const liveVisitors = await this.getLiveVisitors();
-      
+      const liveVisitors  = await this.getLiveVisitors();
+
       return {
-        totalViews: totalViews || 0,
+        totalViews,
         uniqueVisitors,
         avgSessionTime,
         viewsOverTime: viewsByDay,
         topCountries,
         topPosts,
         deviceStats,
-        liveVisitors
+        liveVisitors,
       };
     } catch (error) {
       console.error('Error fetching analytics:', error);
@@ -106,7 +111,7 @@ const analyticsService = {
         topCountries: [],
         topPosts: [],
         deviceStats: [],
-        liveVisitors: 0
+        liveVisitors: 0,
       };
     }
   },
@@ -117,96 +122,93 @@ const analyticsService = {
       date.setDate(date.getDate() - i);
       return date.toISOString().split('T')[0];
     }).reverse();
-    
-    const viewsMap = new Map();
+
+    const viewsMap = new Map<string, number>();
     views.forEach(view => {
       const date = view.viewed_at.split('T')[0];
-      viewsMap.set(date, (viewsMap.get(date) || 0) + 1);
+      viewsMap.set(date, (viewsMap.get(date) ?? 0) + 1);
     });
-    
-    return lastDays.map(date => ({
-      date,
-      views: viewsMap.get(date) || 0
-    }));
+
+    return lastDays.map(date => ({ date, views: viewsMap.get(date) ?? 0 }));
   },
 
   calculateTopCountries(views: any[], totalViews: number) {
-    const countryMap = new Map();
+    const countryMap = new Map<string, number>();
     views.forEach(view => {
       if (view.country && view.country !== 'Unknown') {
-        countryMap.set(view.country, (countryMap.get(view.country) || 0) + 1);
+        countryMap.set(view.country, (countryMap.get(view.country) ?? 0) + 1);
       }
     });
-    
+
     const countryFlags: Record<string, string> = {
       'United States': '🇺🇸', 'India': '🇮🇳', 'Philippines': '🇵🇭',
       'Nigeria': '🇳🇬', 'Pakistan': '🇵🇰', 'Bangladesh': '🇧🇩',
       'United Kingdom': '🇬🇧', 'Canada': '🇨🇦', 'Egypt': '🇪🇬',
       'Turkey': '🇹🇷', 'Germany': '🇩🇪', 'France': '🇫🇷',
-      'Australia': '🇦🇺', 'Brazil': '🇧🇷', 'Japan': '🇯🇵'
+      'Australia': '🇦🇺', 'Brazil': '🇧🇷', 'Japan': '🇯🇵',
+      'Singapore': '🇸🇬', 'Indonesia': '🇮🇩', 'Malaysia': '🇲🇾',
     };
-    
+
     const countries = Array.from(countryMap.entries())
       .map(([country, visitors]) => ({
         country,
-        visitors: visitors as number,
-        percentage: totalViews > 0 ? Math.round((visitors as number / totalViews) * 100) : 0,
-        flag: countryFlags[country] || '🌍'
+        visitors,
+        percentage: totalViews > 0 ? Math.round((visitors / totalViews) * 100) : 0,
+        flag: countryFlags[country] ?? '🌍',
       }))
       .sort((a, b) => b.visitors - a.visitors)
       .slice(0, 10);
-    
-    return countries.length > 0 ? countries : [
-      { country: 'United States', visitors: 0, percentage: 0, flag: '🇺🇸' },
-      { country: 'India', visitors: 0, percentage: 0, flag: '🇮🇳' }
-    ];
+
+    // Only return placeholder if truly no data
+    return countries.length > 0 ? countries : [];
   },
 
   async calculateTopPosts(postViews: any[]) {
     if (!postViews.length) return [];
-    
-    const postViewCount = new Map();
+
+    const postViewCount = new Map<string, number>();
     postViews.forEach(view => {
       if (view.post_id) {
-        postViewCount.set(view.post_id, (postViewCount.get(view.post_id) || 0) + 1);
+        postViewCount.set(view.post_id, (postViewCount.get(view.post_id) ?? 0) + 1);
       }
     });
-    
+
     const postIds = Array.from(postViewCount.keys());
-    if (postIds.length === 0) return [];
-    
-    const { data: posts } = await supabase
+    if (!postIds.length) return [];
+
+    const { data: posts, error } = await supabase
       .from('posts')
       .select('id, title')
       .in('id', postIds);
-    
-    return (posts || [])
+
+    if (error) console.error('[analytics] top posts error:', error);
+
+    return (posts ?? [])
       .map(post => ({
         id: post.id,
         title: post.title,
-        views: postViewCount.get(post.id) || 0
+        views: postViewCount.get(post.id) ?? 0,
       }))
       .sort((a, b) => b.views - a.views)
       .slice(0, 5);
   },
 
   calculateDeviceStats(views: any[]) {
-    if (!views.length) return [
-      { device: 'desktop', percentage: 60 },
-      { device: 'mobile', percentage: 35 },
-      { device: 'tablet', percentage: 5 }
-    ];
-    
-    const deviceMap = new Map();
+    if (!views.length) return [];
+
+    const deviceMap = new Map<string, number>();
     views.forEach(view => {
-      deviceMap.set(view.device_type, (deviceMap.get(view.device_type) || 0) + 1);
+      const d = view.device_type ?? 'desktop';
+      deviceMap.set(d, (deviceMap.get(d) ?? 0) + 1);
     });
-    
+
     const total = views.length;
-    return Array.from(deviceMap.entries()).map(([device, count]) => ({
-      device: device as string,
-      percentage: Math.round((count as number / total) * 100)
-    }));
+    return Array.from(deviceMap.entries())
+      .map(([device, count]) => ({
+        device,
+        percentage: Math.round((count / total) * 100),
+      }))
+      .sort((a, b) => b.percentage - a.percentage);
   },
 
   async calculateAvgSessionTime(startDate: Date): Promise<number> {
@@ -215,57 +217,33 @@ const analyticsService = {
         .from('sessions')
         .select('duration')
         .gte('started_at', startDate.toISOString());
-      
-      if (!sessions || sessions.length === 0) return 182; // Default 3m 2s
-      const avgDuration = sessions.reduce((sum, s) => sum + (s.duration || 0), 0) / sessions.length;
-      return Math.round(avgDuration);
+
+      if (!sessions?.length) return 0;
+      const avg = sessions.reduce((sum, s) => sum + (s.duration ?? 0), 0) / sessions.length;
+      return Math.round(avg);
     } catch {
-      return 182;
+      return 0;
     }
   },
 
   async getLiveVisitors(): Promise<number> {
-  try {
-    const fiveMinutesAgo = new Date();
-    fiveMinutesAgo.setMinutes(fiveMinutesAgo.getMinutes() - 5);
-    
-    // Get unique visitors in last 5 minutes
-    const { data, error } = await supabase
-      .from('page_views')
-      .select('visitor_id')
-      .gte('viewed_at', fiveMinutesAgo.toISOString());
-    
-    if (error) throw error;
-    
-    // Count unique visitors
-    const uniqueVisitors = data ? new Set(data.map(v => v.visitor_id)).size : 0;
-    return uniqueVisitors;
-  } catch (error) {
-    console.error('Error getting live visitors:', error);
-    return 0;
-  }
-},
-
-  async trackPageView(postId: string | null, pageUrl: string, country: string, deviceType: string) {
     try {
-      let visitorId = localStorage.getItem('visitor_id');
-      if (!visitorId) {
-        visitorId = crypto.randomUUID();
-        localStorage.setItem('visitor_id', visitorId);
-      }
-      
-      await supabase.from('page_views').insert({
-        post_id: postId,
-        page_url: pageUrl,
-        visitor_id: visitorId,
-        country: country,
-        device_type: deviceType,
-        viewed_at: new Date().toISOString()
-      });
+      // "Live" = active in the last 5 minutes
+      const fiveMinutesAgo = new Date();
+      fiveMinutesAgo.setMinutes(fiveMinutesAgo.getMinutes() - 5);
+
+      const { data, error } = await supabase
+        .from('page_views')
+        .select('visitor_id')
+        .gte('viewed_at', fiveMinutesAgo.toISOString());
+
+      if (error) throw error;
+      return data ? new Set(data.map(v => v.visitor_id)).size : 0;
     } catch (error) {
-      console.error('Error tracking page view:', error);
+      console.error('Error getting live visitors:', error);
+      return 0;
     }
-  }
+  },
 };
 
 // ─── Login Screen ───────────────────────────────────────────────
@@ -343,9 +321,7 @@ function Sidebar({ active, onNavigate, collapsed, onToggle }: {
             key={link.id}
             onClick={() => onNavigate(link.id)}
             className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-sm font-medium transition-all duration-150 ${
-              active === link.id
-                ? 'bg-indigo-50 text-indigo-700'
-                : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50'
+              active === link.id ? 'bg-indigo-50 text-indigo-700' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50'
             } ${collapsed ? 'justify-center' : ''}`}
             title={collapsed ? link.label : undefined}
           >
@@ -403,11 +379,11 @@ function TopBar({ user, onLogout, onSearch }: {
         <div className="w-px h-6 bg-slate-200 mx-1" />
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-xs font-bold">
-            {user?.displayName?.charAt(0) || 'A'}
+            {user?.displayName?.charAt(0) ?? 'A'}
           </div>
           <div className="hidden sm:block">
-            <p className="text-sm font-medium text-slate-900 leading-none">{user?.displayName || 'Admin'}</p>
-            <p className="text-[11px] text-slate-400 mt-0.5">{user?.email || ''}</p>
+            <p className="text-sm font-medium text-slate-900 leading-none">{user?.displayName ?? 'Admin'}</p>
+            <p className="text-[11px] text-slate-400 mt-0.5">{user?.email ?? ''}</p>
           </div>
           <button onClick={onLogout} className="p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors" title="Sign out"><LogOut size={14} /></button>
         </div>
@@ -416,55 +392,44 @@ function TopBar({ user, onLogout, onSearch }: {
   );
 }
 
-// ─── Dashboard Page with Real Data ─────────────────────────────
+// ─── Dashboard Page ─────────────────────────────────────────────
 function DashboardPage({ posts, onNavigate }: { posts: Post[]; onNavigate: (p: AdminPage) => void }) {
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
+  // Use a ref so the interval callback always has the latest version without re-creating it
+  const loadingRef = useRef(false);
 
-  useEffect(() => {
-    loadAnalytics();
-    
-    // Set up real-time subscription for live visitors
-    const channel = supabase
-      .channel('live-visitors-dashboard')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'page_views'
-        },
-        () => {
-          // Refresh analytics when new view comes in
-          loadAnalytics();
-        }
-      )
-      .subscribe();
-      
-    return () => {
-      channel.unsubscribe();
-    };
-  }, []);
-
-  const loadAnalytics = async () => {
+  const loadAnalytics = useCallback(async () => {
+    // Prevent concurrent fetches
+    if (loadingRef.current) return;
+    loadingRef.current = true;
     setLoading(true);
     const data = await analyticsService.getAnalytics(7);
     setAnalytics(data);
     setLoading(false);
-  };
+    loadingRef.current = false;
+  }, []);
+
+  useEffect(() => {
+    loadAnalytics();
+    // Poll every 30 seconds instead of re-fetching on every INSERT event
+    // (the realtime approach caused a full re-fetch for every single page view)
+    const interval = setInterval(loadAnalytics, 30_000);
+    return () => clearInterval(interval);
+  }, [loadAnalytics]);
 
   const published = posts.filter(p => p.status === 'published').length;
-  const drafts = posts.filter(p => p.status === 'draft').length;
+  const drafts    = posts.filter(p => p.status === 'draft').length;
 
   const widgets = [
-    { label: 'Total Posts', value: posts.length, icon: <FileText size={20} />, change: '+3 this week', bg: 'bg-blue-50', text: 'text-blue-600' },
-    { label: 'Published', value: published, icon: <Eye size={20} />, change: `${published} live`, bg: 'bg-emerald-50', text: 'text-emerald-600' },
-    { label: 'Drafts', value: drafts, icon: <FilePen size={20} />, change: `${drafts} pending`, bg: 'bg-amber-50', text: 'text-amber-600' },
-    { label: 'Total Views', value: analytics?.totalViews.toLocaleString() || '0', icon: <MousePointerClick size={20} />, change: 'last 7 days', bg: 'bg-purple-50', text: 'text-purple-600' },
+    { label: 'Total Posts',  value: posts.length,                                      icon: <FileText size={20} />,         change: `${posts.length} total`,   bg: 'bg-blue-50',    text: 'text-blue-600'    },
+    { label: 'Published',    value: published,                                           icon: <Eye size={20} />,              change: `${published} live`,       bg: 'bg-emerald-50', text: 'text-emerald-600' },
+    { label: 'Drafts',       value: drafts,                                              icon: <FilePen size={20} />,          change: `${drafts} pending`,       bg: 'bg-amber-50',   text: 'text-amber-600'   },
+    { label: 'Total Views',  value: analytics?.totalViews.toLocaleString() ?? '—',      icon: <MousePointerClick size={20} />, change: 'last 7 days',            bg: 'bg-purple-50',  text: 'text-purple-600'  },
   ];
 
-  const maxViews = analytics && analytics.viewsOverTime.length > 0 
-    ? Math.max(...analytics.viewsOverTime.map(v => v.views)) 
+  const maxViews = analytics && analytics.viewsOverTime.length > 0
+    ? Math.max(...analytics.viewsOverTime.map(v => v.views), 1)
     : 1;
 
   return (
@@ -488,6 +453,7 @@ function DashboardPage({ posts, onNavigate }: { posts: Post[]; onNavigate: (p: A
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* Views chart */}
         <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200 p-5">
           <div className="flex items-center justify-between mb-6">
             <div>
@@ -500,68 +466,73 @@ function DashboardPage({ posts, onNavigate }: { posts: Post[]; onNavigate: (p: A
                   <TrendingUp size={12} />{Math.round(analytics.totalViews / 7)}/day avg
                 </span>
               )}
-              <button 
-                onClick={loadAnalytics} 
-                className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
-                title="Refresh data"
-              >
+              <button onClick={loadAnalytics} className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors" title="Refresh data">
                 <RefreshCw size={14} />
               </button>
             </div>
           </div>
           {loading ? (
-            <div className="h-40 flex items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div></div>
-          ) : analytics && analytics.viewsOverTime.length > 0 ? (
+            <div className="h-40 flex items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" /></div>
+          ) : analytics && analytics.viewsOverTime.some(v => v.views > 0) ? (
             <div className="flex items-end gap-2 h-40">
-              {analytics.viewsOverTime.map((day, i) => (
+              {analytics.viewsOverTime.map(day => (
                 <div key={day.date} className="flex-1 flex flex-col items-center gap-1.5">
                   <div className="w-full relative rounded-t-lg overflow-hidden" style={{ height: '100%' }}>
-                    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-indigo-500 to-indigo-400 rounded-t-lg transition-all duration-500" style={{ height: `${(day.views / maxViews) * 100}%` }} />
+                    <div
+                      className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-indigo-500 to-indigo-400 rounded-t-lg transition-all duration-500"
+                      style={{ height: `${Math.max((day.views / maxViews) * 100, day.views > 0 ? 4 : 0)}%` }}
+                    />
                   </div>
                   <span className="text-[10px] text-slate-400 font-medium">{new Date(day.date).toLocaleDateString('en-US', { weekday: 'short' })}</span>
                 </div>
               ))}
             </div>
           ) : (
-            <div className="h-40 flex items-center justify-center text-slate-400 text-sm">No data available yet</div>
+            <div className="h-40 flex flex-col items-center justify-center text-slate-400 gap-1">
+              <p className="text-sm">No data yet</p>
+              <p className="text-xs">Visit some pages on the site to start tracking</p>
+            </div>
           )}
           <div className="flex items-center justify-between mt-3 pt-3 border-t border-slate-100">
-            <span className="text-xs text-slate-400">Total: {analytics?.totalViews.toLocaleString() || 0} views</span>
-            <span className="text-xs text-slate-400">Avg: {analytics ? Math.round(analytics.totalViews / 7) : 0}/day</span>
+            <span className="text-xs text-slate-400">Total: {analytics?.totalViews.toLocaleString() ?? 0} views</span>
+            <span className="text-xs text-slate-400">Unique: {analytics?.uniqueVisitors.toLocaleString() ?? 0} visitors</span>
           </div>
         </div>
 
+        {/* Live visitors */}
         <div className="bg-white rounded-2xl border border-slate-200 p-5">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <h3 className="font-semibold text-slate-900 text-sm">Live Visitors</h3>
-              <button 
-                onClick={loadAnalytics} 
-                className="p-1 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
-                title="Refresh live visitors"
-              >
+              <button onClick={loadAnalytics} className="p-1 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors" title="Refresh">
                 <RefreshCw size={12} />
               </button>
             </div>
-            <span className="flex items-center gap-1.5 text-xs font-medium text-emerald-600"><span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />Live</span>
+            <span className="flex items-center gap-1.5 text-xs font-medium text-emerald-600">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />Live
+            </span>
           </div>
           <div className="text-center py-4">
-            <p className="text-5xl font-bold text-slate-900">{analytics?.liveVisitors || 0}</p>
-            <p className="text-sm text-slate-400 mt-1">active users right now</p>
+            <p className="text-5xl font-bold text-slate-900">{analytics?.liveVisitors ?? 0}</p>
+            <p className="text-sm text-slate-400 mt-1">active in last 5 min</p>
           </div>
           <div className="space-y-2.5 mt-2">
-            {(analytics?.topCountries || []).slice(0, 4).map(c => (
+            {(analytics?.topCountries ?? []).slice(0, 4).map(c => (
               <div key={c.country} className="flex items-center gap-2.5">
                 <span className="text-base">{c.flag}</span>
-                <span className="text-xs text-slate-600 flex-1">{c.country}</span>
+                <span className="text-xs text-slate-600 flex-1 truncate">{c.country}</span>
                 <span className="text-xs font-semibold text-slate-900">{c.visitors}</span>
               </div>
             ))}
+            {(!analytics?.topCountries.length) && (
+              <p className="text-xs text-slate-400 text-center py-2">No country data yet</p>
+            )}
           </div>
           <button onClick={() => onNavigate('countries')} className="w-full mt-4 py-2 rounded-xl text-xs font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 transition-colors">View all countries</button>
         </div>
       </div>
 
+      {/* Recent Posts */}
       <div className="bg-white rounded-2xl border border-slate-200">
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
           <h3 className="font-semibold text-slate-900 text-sm">Recent Posts</h3>
@@ -594,20 +565,28 @@ function PostsPage({ posts, searchQuery, onSearch, onEdit, onDelete, onToggleSta
   deleteConfirm: string | null; onNavigate: (p: AdminPage) => void;
 }) {
   const [postViews, setPostViews] = useState<Record<string, number>>({});
-  
+
   useEffect(() => {
+    if (!posts.length) return;
+
     const fetchViews = async () => {
-      const views: Record<string, number> = {};
-      for (const post of posts) {
-        const { count } = await supabase
-          .from('page_views')
-          .select('*', { count: 'exact', head: true })
-          .eq('post_id', post.id);
-        views[post.id] = count || 0;
-      }
-      setPostViews(views);
+      // ✅ Single batched query instead of N sequential requests
+      const ids = posts.map(p => p.id);
+      const { data, error } = await supabase
+        .from('page_views')
+        .select('post_id')
+        .in('post_id', ids);
+
+      if (error) { console.error('[posts] views error:', error); return; }
+
+      const counts: Record<string, number> = {};
+      (data ?? []).forEach(row => {
+        if (row.post_id) counts[row.post_id] = (counts[row.post_id] ?? 0) + 1;
+      });
+      setPostViews(counts);
     };
-    if (posts.length > 0) fetchViews();
+
+    fetchViews();
   }, [posts]);
 
   const filtered = useMemo(() => {
@@ -637,11 +616,11 @@ function PostsPage({ posts, searchQuery, onSearch, onEdit, onDelete, onToggleSta
                 <th className="text-left text-[11px] font-semibold text-slate-400 uppercase tracking-wider px-4 py-3">Views</th>
                 <th className="text-left text-[11px] font-semibold text-slate-400 uppercase tracking-wider px-4 py-3">Date</th>
                 <th className="text-right text-[11px] font-semibold text-slate-400 uppercase tracking-wider px-5 py-3">Actions</th>
-               </tr>
+              </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
               {filtered.map(post => {
-                const cat = getCategoryInfo(post.category);
+                const cat   = getCategoryInfo(post.category);
                 const level = getLevelInfo(post.level);
                 return (
                   <tr key={post.id} className="hover:bg-slate-50/50 transition-colors">
@@ -655,7 +634,7 @@ function PostsPage({ posts, searchQuery, onSearch, onEdit, onDelete, onToggleSta
                       </button>
                     </td>
                     <td className="px-4 py-3.5"><span className={`inline-flex px-2 py-0.5 rounded-full text-[11px] font-semibold ${level.bgColor} ${level.color}`}>{level.name}</span></td>
-                    <td className="px-4 py-3.5"><span className="text-sm text-slate-500">{postViews[post.id] || 0}</span></td>
+                    <td className="px-4 py-3.5"><span className="text-sm text-slate-500">{postViews[post.id] ?? 0}</span></td>
                     <td className="px-4 py-3.5"><span className="text-xs text-slate-400">{formatDate(post.date)}</span></td>
                     <td className="px-5 py-3.5 text-right">
                       <div className="flex items-center justify-end gap-1">
@@ -705,41 +684,39 @@ function DraftsPage({ posts, onEdit }: { posts: Post[]; onEdit: (p: Post) => voi
           })}
         </div>
       ) : (
-        <div className="bg-white rounded-2xl border border-slate-200 py-16 text-center"><FilePen size={32} className="mx-auto text-slate-300 mb-3" /><p className="text-sm font-medium text-slate-500">No drafts</p><p className="text-xs text-slate-400 mt-0.5">All your posts are published!</p></div>
+        <div className="bg-white rounded-2xl border border-slate-200 py-16 text-center">
+          <FilePen size={32} className="mx-auto text-slate-300 mb-3" />
+          <p className="text-sm font-medium text-slate-500">No drafts</p>
+          <p className="text-xs text-slate-400 mt-0.5">All your posts are published!</p>
+        </div>
       )}
     </div>
   );
 }
 
-// ─── Analytics Page with Real Data ─────────────────────────────
+// ─── Analytics Page ─────────────────────────────────────────────
 function AnalyticsPage() {
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [days, setDays] = useState(30);
 
-  useEffect(() => {
-    loadAnalytics();
-  }, [days]);
-
-  const loadAnalytics = async () => {
+  const loadAnalytics = useCallback(async () => {
     setLoading(true);
     const data = await analyticsService.getAnalytics(days);
     setAnalytics(data);
     setLoading(false);
-  };
+  }, [days]);
+
+  useEffect(() => { loadAnalytics(); }, [loadAnalytics]);
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
-      </div>
-    );
+    return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" /></div>;
   }
-
   if (!analytics) return null;
 
-  const maxViews = analytics.viewsOverTime.length > 0 ? Math.max(...analytics.viewsOverTime.map(v => v.views)) : 1;
-  const totalViewsLastMonth = analytics.totalViews;
+  const maxViews = analytics.viewsOverTime.length > 0
+    ? Math.max(...analytics.viewsOverTime.map(v => v.views), 1)
+    : 1;
 
   return (
     <div className="space-y-6">
@@ -748,22 +725,23 @@ function AnalyticsPage() {
           <h1 className="text-2xl font-bold text-slate-900">Analytics</h1>
           <p className="text-sm text-slate-500 mt-0.5">Real-time site performance</p>
         </div>
-        <select 
-          value={days} 
-          onChange={(e) => setDays(Number(e.target.value))}
-          className="px-3 py-1.5 rounded-lg border border-slate-200 text-sm bg-white"
-        >
-          <option value={7}>Last 7 days</option>
-          <option value={30}>Last 30 days</option>
-          <option value={90}>Last 90 days</option>
-        </select>
+        <div className="flex items-center gap-2">
+          <button onClick={loadAnalytics} className="p-2 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors" title="Refresh">
+            <RefreshCw size={16} />
+          </button>
+          <select value={days} onChange={e => setDays(Number(e.target.value))} className="px-3 py-1.5 rounded-lg border border-slate-200 text-sm bg-white">
+            <option value={7}>Last 7 days</option>
+            <option value={30}>Last 30 days</option>
+            <option value={90}>Last 90 days</option>
+          </select>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {[
-          { label: 'Page Views', value: analytics.totalViews.toLocaleString(), change: '+12%', icon: <MousePointerClick size={18} /> },
-          { label: 'Unique Visitors', value: analytics.uniqueVisitors.toLocaleString(), change: '+8%', icon: <Users size={18} /> },
-          { label: 'Avg. Session', value: `${Math.floor(analytics.avgSessionTime / 60)}m ${analytics.avgSessionTime % 60}s`, change: '+5%', icon: <Clock size={18} /> },
+          { label: 'Page Views',      value: analytics.totalViews.toLocaleString(),    icon: <MousePointerClick size={18} /> },
+          { label: 'Unique Visitors', value: analytics.uniqueVisitors.toLocaleString(), icon: <Users size={18} /> },
+          { label: 'Avg. Session',    value: analytics.avgSessionTime > 0 ? `${Math.floor(analytics.avgSessionTime / 60)}m ${analytics.avgSessionTime % 60}s` : '—', icon: <Clock size={18} /> },
         ].map((s, i) => (
           <div key={i} className="bg-white rounded-2xl border border-slate-200 p-5">
             <div className="flex items-center gap-3">
@@ -773,7 +751,6 @@ function AnalyticsPage() {
                 <p className="text-xl font-bold text-slate-900">{s.value}</p>
               </div>
             </div>
-            <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-600 mt-2"><TrendingUp size={10} />{s.change} vs last period</span>
           </div>
         ))}
       </div>
@@ -782,47 +759,53 @@ function AnalyticsPage() {
         <div className="bg-white rounded-2xl border border-slate-200 p-5">
           <h3 className="font-semibold text-slate-900 text-sm mb-1">Views Over Time</h3>
           <p className="text-xs text-slate-400 mb-6">Last {days} days</p>
-          {analytics.viewsOverTime.length > 0 ? (
-            <div className="flex items-end gap-2 h-44">
-              {analytics.viewsOverTime.map((day, i) => (
+          {analytics.viewsOverTime.some(v => v.views > 0) ? (
+            <div className="flex items-end gap-1 h-44">
+              {analytics.viewsOverTime.map(day => (
                 <div key={day.date} className="flex-1 flex flex-col items-center gap-1.5">
-                  <span className="text-[10px] font-semibold text-slate-500">{day.views}</span>
+                  {day.views > 0 && <span className="text-[9px] font-semibold text-slate-500">{day.views}</span>}
                   <div className="w-full relative rounded-lg overflow-hidden" style={{ height: '100%' }}>
-                    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-indigo-500 to-indigo-400 rounded-lg" style={{ height: `${(day.views / maxViews) * 100}%` }} />
+                    <div
+                      className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-indigo-500 to-indigo-400 rounded-lg"
+                      style={{ height: `${Math.max((day.views / maxViews) * 100, day.views > 0 ? 4 : 0)}%` }}
+                    />
                   </div>
-                  <span className="text-[10px] text-slate-400 font-medium">{new Date(day.date).toLocaleDateString('en-US', { day: 'numeric', month: 'short' })}</span>
+                  <span className="text-[9px] text-slate-400 font-medium">{new Date(day.date).toLocaleDateString('en-US', { day: 'numeric', month: 'short' })}</span>
                 </div>
               ))}
             </div>
           ) : (
-            <div className="h-44 flex items-center justify-center text-slate-400">No data available</div>
+            <div className="h-44 flex items-center justify-center text-slate-400 text-sm">No data available yet</div>
           )}
         </div>
 
         <div className="bg-white rounded-2xl border border-slate-200 p-5">
           <h3 className="font-semibold text-slate-900 text-sm mb-4">Device Breakdown</h3>
-          <div className="space-y-4">
-            {(analytics.deviceStats || []).map(device => (
-              <div key={device.device}>
-                <div className="flex items-center justify-between text-sm mb-1">
-                  <div className="flex items-center gap-2">
-                    {device.device === 'mobile' && <Smartphone size={14} />}
-                    {device.device === 'tablet' && <Tablet size={14} />}
-                    {device.device === 'desktop' && <Monitor size={14} />}
-                    <span className="capitalize">{device.device}</span>
+          {analytics.deviceStats.length > 0 ? (
+            <div className="space-y-4">
+              {analytics.deviceStats.map(device => (
+                <div key={device.device}>
+                  <div className="flex items-center justify-between text-sm mb-1">
+                    <div className="flex items-center gap-2">
+                      {device.device === 'mobile'  && <Smartphone size={14} />}
+                      {device.device === 'tablet'  && <Tablet size={14} />}
+                      {device.device === 'desktop' && <Monitor size={14} />}
+                      <span className="capitalize">{device.device}</span>
+                    </div>
+                    <span className="font-semibold">{device.percentage}%</span>
                   </div>
-                  <span className="font-semibold">{device.percentage}%</span>
+                  <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                    <div className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full" style={{ width: `${device.percentage}%` }} />
+                  </div>
                 </div>
-                <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
-                  <div className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full" style={{ width: `${device.percentage}%` }} />
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <div className="h-32 flex items-center justify-center text-slate-400 text-sm">No device data yet</div>
+          )}
         </div>
       </div>
 
-      {/* Top Posts */}
       {analytics.topPosts.length > 0 && (
         <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
           <div className="px-5 py-4 border-b border-slate-100">
@@ -832,10 +815,10 @@ function AnalyticsPage() {
             {analytics.topPosts.map((post, i) => (
               <div key={post.id} className="flex items-center justify-between px-5 py-3.5 hover:bg-slate-50/50 transition-colors">
                 <div className="flex items-center gap-3">
-                  <span className="text-sm font-semibold text-slate-400">{i + 1}</span>
+                  <span className="text-sm font-semibold text-slate-400 w-4">{i + 1}</span>
                   <span className="text-sm font-medium text-slate-900">{post.title}</span>
                 </div>
-                <span className="text-sm font-semibold text-indigo-600">{post.views.toLocaleString()} views</span>
+                <span className="text-sm font-semibold text-indigo-600 shrink-0 ml-4">{post.views.toLocaleString()} views</span>
               </div>
             ))}
           </div>
@@ -845,45 +828,34 @@ function AnalyticsPage() {
   );
 }
 
-// ─── Countries Page with Real Data ─────────────────────────────
+// ─── Countries Page ──────────────────────────────────────────────
 function CountriesPage() {
   const [countries, setCountries] = useState<{ flag: string; name: string; visitors: number; pct: number }[]>([]);
-  const [totalVisitors, setTotalVisitors] = useState(0);
+  const [totalViews, setTotalViews] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadCountries();
+    const load = async () => {
+      setLoading(true);
+      const data = await analyticsService.getAnalytics(30);
+      setCountries(data.topCountries.map(c => ({ flag: c.flag, name: c.country, visitors: c.visitors, pct: c.percentage })));
+      setTotalViews(data.totalViews);
+      setLoading(false);
+    };
+    load();
   }, []);
 
-  const loadCountries = async () => {
-    setLoading(true);
-    const analytics = await analyticsService.getAnalytics(30);
-    const formattedCountries = analytics.topCountries.map(c => ({
-      flag: c.flag,
-      name: c.country,
-      visitors: c.visitors,
-      pct: c.percentage
-    }));
-    setCountries(formattedCountries);
-    setTotalVisitors(analytics.totalViews);
-    setLoading(false);
-  };
-
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
-      </div>
-    );
+    return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" /></div>;
   }
 
   return (
     <div className="space-y-5">
-      <div><h1 className="text-2xl font-bold text-slate-900">Visitors by Country</h1><p className="text-sm text-slate-500 mt-0.5">Where your readers come from</p></div>
+      <div><h1 className="text-2xl font-bold text-slate-900">Visitors by Country</h1><p className="text-sm text-slate-500 mt-0.5">Where your readers come from (last 30 days)</p></div>
       <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
         <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
           <h3 className="font-semibold text-slate-900 text-sm">Top Countries</h3>
-          <span className="text-xs text-slate-400">{totalVisitors.toLocaleString()} total visitors</span>
+          <span className="text-xs text-slate-400">{totalViews.toLocaleString()} total views</span>
         </div>
         <div className="divide-y divide-slate-50">
           {countries.length > 0 ? countries.map((c, i) => (
@@ -898,7 +870,7 @@ function CountriesPage() {
               <span className="text-xs text-slate-400 w-10 text-right">{c.pct}%</span>
             </div>
           )) : (
-            <div className="py-12 text-center text-slate-400">No country data available yet</div>
+            <div className="py-12 text-center text-slate-400 text-sm">No country data available yet</div>
           )}
         </div>
       </div>
@@ -936,25 +908,30 @@ function SettingsPage() {
   );
 }
 
-// ─── Post Form (Create / Edit) ──────────────────────────────────
+// ─── Post Form ──────────────────────────────────────────────────
 function PostForm({ post, onSave, onCancel, isSaving }: {
   post: Post | null; onSave: (data: CreatePostData, status: PostStatus) => void; onCancel: () => void; isSaving: boolean;
 }) {
-  const [title, setTitle] = useState(post?.title || '');
-  const [excerpt, setExcerpt] = useState(post?.excerpt || '');
-  const [content, setContent] = useState(post?.content || '');
-  const [category, setCategory] = useState<PostCategory>(post?.category || 'daily-conversation');
-  const [level, setLevel] = useState<Level>(post?.level || 'beginner');
-  const [type, setType] = useState<PostType>(post?.type || 'blog');
-  const [featuredImage, setFeaturedImage] = useState(post?.featuredImage || '');
-  const [tagsInput, setTagsInput] = useState(post?.tags.join(', ') || '');
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [title, setTitle]               = useState(post?.title ?? '');
+  const [excerpt, setExcerpt]           = useState(post?.excerpt ?? '');
+  const [content, setContent]           = useState(post?.content ?? '');
+  const [category, setCategory]         = useState<PostCategory>(post?.category ?? 'daily-conversation');
+  const [level, setLevel]               = useState<Level>(post?.level ?? 'beginner');
+  const [type, setType]                 = useState<PostType>(post?.type ?? 'blog');
+  const [featuredImage, setFeaturedImage] = useState(post?.featuredImage ?? '');
+  const [tagsInput, setTagsInput]       = useState(post?.tags.join(', ') ?? '');
+  const [errors, setErrors]             = useState<Record<string, string>>({});
 
   const handleSubmit = (status: PostStatus) => {
-    const data: CreatePostData = { title, excerpt, content, category, level, type, status, featuredImage: featuredImage || 'https://images.pexels.com/photos/4145354/pexels-photo-4145354.jpeg?auto=compress&cs=tinysrgb&w=800', tags: tagsInput.split(',').map(t => t.trim()).filter(Boolean) };
+    const data: CreatePostData = {
+      title, excerpt, content, category, level, type, status,
+      featuredImage: featuredImage || 'https://images.pexels.com/photos/4145354/pexels-photo-4145354.jpeg?auto=compress&cs=tinysrgb&w=800',
+      tags: tagsInput.split(',').map(t => t.trim()).filter(Boolean),
+    };
     const validation = validatePost(data);
     if (!validation.valid) { setErrors(validation.errors); return; }
-    setErrors({}); onSave(data, status);
+    setErrors({});
+    onSave(data, status);
   };
 
   return (
@@ -991,14 +968,14 @@ function PostForm({ post, onSave, onCancel, isSaving }: {
   );
 }
 
-// ─── Main Admin Layout ─────────────────────────────────────────
+// ─── Main Admin Layout ──────────────────────────────────────────
 function AdminLayout() {
   const navigate = useNavigate();
   const { user, logout } = useAuthStore();
   const { posts, deletePost, togglePostStatus, initialize, initialized } = usePostStore();
-  const [activePage, setActivePage] = useState<AdminPage>('dashboard');
-  const [editingPost, setEditingPost] = useState<Post | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [activePage, setActivePage]       = useState<AdminPage>('dashboard');
+  const [editingPost, setEditingPost]     = useState<Post | null>(null);
+  const [searchQuery, setSearchQuery]     = useState('');
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
@@ -1006,15 +983,19 @@ function AdminLayout() {
   useEffect(() => { if (!initialized) initialize(); }, [initialized, initialize]);
 
   const showToast = useCallback((message: string, type: 'success' | 'error' = 'success') => {
-    setToast({ message, type }); setTimeout(() => setToast(null), 3000);
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
   }, []);
 
-  const handleLogout = async () => { await logout(); navigate('/admin'); };
+  const handleLogout      = async () => { await logout(); navigate('/admin'); };
+  const handleEdit        = (post: Post) => { setEditingPost(post); setActivePage('create'); };
+  const handleNavigate    = (page: AdminPage) => { if (page !== 'create') setEditingPost(null); setActivePage(page); };
 
   const handleDelete = async (id: string) => {
     if (!id) { setDeleteConfirm(null); return; }
     const success = await deletePost(id);
-    if (success) { showToast('Post deleted'); setDeleteConfirm(null); } else { showToast('Failed to delete', 'error'); }
+    if (success) { showToast('Post deleted'); setDeleteConfirm(null); }
+    else showToast('Failed to delete', 'error');
   };
 
   const handleToggleStatus = async (id: string) => {
@@ -1022,21 +1003,16 @@ function AdminLayout() {
     if (result) showToast(result.status === 'published' ? 'Post published' : 'Moved to draft');
   };
 
-  const handleEdit = (post: Post) => { setEditingPost(post); setActivePage('create'); };
-
-  const handleNavigate = (page: AdminPage) => {
-    if (page !== 'create') setEditingPost(null);
-    setActivePage(page);
-  };
-
   const handleSave = async (data: CreatePostData, status: PostStatus) => {
     await supabase.auth.refreshSession();
     if (editingPost) {
       const result = await usePostStore.getState().updatePost({ ...data, id: editingPost.id, status });
-      if (result) { showToast('Post updated'); setActivePage('posts'); setEditingPost(null); } else { showToast('Failed to update', 'error'); }
+      if (result) { showToast('Post updated'); setActivePage('posts'); setEditingPost(null); }
+      else showToast('Failed to update', 'error');
     } else {
       await usePostStore.getState().createPost({ ...data, status });
-      showToast('Post created'); setActivePage('posts');
+      showToast('Post created');
+      setActivePage('posts');
     }
   };
 
@@ -1048,23 +1024,26 @@ function AdminLayout() {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <Sidebar active={activePage} onNavigate={handleNavigate} collapsed={sidebarCollapsed} onToggle={() => setSidebarCollapsed(!sidebarCollapsed)} />
+      <Sidebar active={activePage} onNavigate={handleNavigate} collapsed={sidebarCollapsed} onToggle={() => setSidebarCollapsed(c => !c)} />
       <div className={`transition-all duration-300 ${sidebarCollapsed ? 'ml-[68px]' : 'ml-[240px]'}`}>
         <TopBar user={user} onLogout={handleLogout} onSearch={setSearchQuery} />
         <main className="p-6">
-          {activePage === 'dashboard' && <DashboardPage posts={posts} onNavigate={handleNavigate} />}
-          {activePage === 'posts' && <PostsPage posts={allPosts} searchQuery={searchQuery} onSearch={setSearchQuery} onEdit={handleEdit} onDelete={handleDelete} onToggleStatus={handleToggleStatus} deleteConfirm={deleteConfirm} onNavigate={handleNavigate} />}
-          {activePage === 'create' && <PostForm post={editingPost} onSave={handleSave} onCancel={() => { setActivePage('posts'); setEditingPost(null); }} isSaving={usePostStore.getState().isSaving} />}
-          {activePage === 'drafts' && <DraftsPage posts={posts} onEdit={handleEdit} />}
-          {activePage === 'analytics' && <AnalyticsPage />}
-          {activePage === 'countries' && <CountriesPage />}
-          {activePage === 'settings' && <SettingsPage />}
+          {activePage === 'dashboard'  && <DashboardPage posts={posts} onNavigate={handleNavigate} />}
+          {activePage === 'posts'      && <PostsPage posts={allPosts} searchQuery={searchQuery} onSearch={setSearchQuery} onEdit={handleEdit} onDelete={handleDelete} onToggleStatus={handleToggleStatus} deleteConfirm={deleteConfirm} onNavigate={handleNavigate} />}
+          {activePage === 'create'     && <PostForm post={editingPost} onSave={handleSave} onCancel={() => { setActivePage('posts'); setEditingPost(null); }} isSaving={usePostStore.getState().isSaving} />}
+          {activePage === 'drafts'     && <DraftsPage posts={posts} onEdit={handleEdit} />}
+          {activePage === 'analytics'  && <AnalyticsPage />}
+          {activePage === 'countries'  && <CountriesPage />}
+          {activePage === 'settings'   && <SettingsPage />}
         </main>
       </div>
 
       <AnimatePresence>
         {toast && (
-          <motion.div initial={{ opacity: 0, y: 20, x: '-50%' }} animate={{ opacity: 1, y: 0, x: '-50%' }} exit={{ opacity: 0, y: 20, x: '-50%' }} className={`fixed bottom-6 left-1/2 z-50 flex items-center gap-2 px-4 py-2.5 rounded-xl shadow-xl text-sm font-medium ${toast.type === 'success' ? 'bg-slate-900 text-white' : 'bg-red-600 text-white'}`}>
+          <motion.div
+            initial={{ opacity: 0, y: 20, x: '-50%' }} animate={{ opacity: 1, y: 0, x: '-50%' }} exit={{ opacity: 0, y: 20, x: '-50%' }}
+            className={`fixed bottom-6 left-1/2 z-50 flex items-center gap-2 px-4 py-2.5 rounded-xl shadow-xl text-sm font-medium ${toast.type === 'success' ? 'bg-slate-900 text-white' : 'bg-red-600 text-white'}`}
+          >
             {toast.type === 'success' ? <CheckCircle size={15} /> : <AlertTriangle size={15} />}{toast.message}
           </motion.div>
         )}
