@@ -1,15 +1,32 @@
 import { useState } from 'react';
 import { Mail, MapPin, Send, CheckCircle, Twitter, Youtube, Instagram, Facebook } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { supabase } from '@/lib/supabase/client';
 
 export default function Contact() {
   const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({ name: '', email: '', subject: '', message: '' });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSubmitted(true);
-    setForm({ name: '', email: '', subject: '', message: '' });
+    setLoading(true);
+
+    try {
+      const { error } = await supabase.functions.invoke('send-contact-email', {
+        body: form,
+      });
+
+      if (error) throw error;
+
+      setSubmitted(true);
+      setForm({ name: '', email: '', subject: '', message: '' });
+    } catch (error) {
+      console.error('Error:', error);
+      alert('মেসেজ পাঠাতে সমস্যা হয়েছে। আবার চেষ্টা করুন।');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -109,10 +126,11 @@ export default function Contact() {
                 </div>
                 <button
                   type="submit"
-                  className="w-full px-6 py-3 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold text-sm hover:from-indigo-700 hover:to-purple-700 transition-all shadow-lg shadow-indigo-500/25 flex items-center justify-center gap-2"
+                  disabled={loading}
+                  className="w-full px-6 py-3 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold text-sm hover:from-indigo-700 hover:to-purple-700 transition-all shadow-lg shadow-indigo-500/25 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
                 >
                   <Send size={16} />
-                  Send Message
+                  {loading ? 'Sending...' : 'Send Message'}
                 </button>
               </form>
             )}
@@ -126,7 +144,7 @@ export default function Contact() {
             transition={{ delay: 0.1 }}
             className="md:col-span-2 space-y-6"
           >
-            {/* Contact Info Card - UPDATED BACKGROUND */}
+            {/* Contact Info Card */}
             <div className="p-6 rounded-2xl bg-blue-50 dark:bg-gray-800 border border-slate-200/80 dark:border-slate-800">
               <h3 className="font-semibold text-slate-900 dark:text-white mb-4">Contact Info</h3>
               <div className="space-y-4">
@@ -151,7 +169,7 @@ export default function Contact() {
               </div>
             </div>
 
-            {/* Follow Us Card - UPDATED BACKGROUND */}
+            {/* Follow Us Card */}
             <div className="p-6 rounded-2xl bg-blue-50 dark:bg-gray-800 border border-slate-200/80 dark:border-slate-800">
               <h3 className="font-semibold text-slate-900 dark:text-white mb-4">Follow Us</h3>
               <div className="space-y-3">
