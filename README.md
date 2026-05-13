@@ -1,73 +1,76 @@
-# React + TypeScript + Vite
+# 🗣️ SpeakEasy - Improve Your English Speaking Daily
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+ইংরেজি বলার দক্ষতা উন্নত করার জন্য React + TypeScript + Vite অ্যাপ।
 
-Currently, two official plugins are available:
+## 🚀 দ্রুত শুরু
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+```bash
+# ডিপেন্ডেন্সি ইনস্টল
+npm install
 
-## React Compiler
+# ডেভেলপমেন্ট সার্ভার চালান
+npm run dev
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+# প্রোডাকশন বিল্ড
+npm run build
 
-## Expanding the ESLint configuration
+🛠️ টেকনোলজি
+React 19 + TypeScript
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+Vite 7
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+Tailwind CSS 4
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+Tiptap (Rich Text Editor)
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+Supabase
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+EmailJS
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+📁 প্রজেক্ট স্ট্রাকচার
+src/
+├── components/     # UI কম্পোনেন্ট
+├── pages/          # পেজ
+├── hooks/          # কাস্টম হুকস
+├── store/          # Zustand স্টোর
+└── lib/            # ইউটিলিটি
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+🔧 এনভায়রনমেন্ট ভেরিয়েবল
+.env ফাইল তৈরি করুন:
+
+VITE_EMAILJS_SERVICE_ID=your_service_id
+VITE_EMAILJS_TEMPLATE_ID=your_template_id
+VITE_EMAILJS_PUBLIC_KEY=your_public_key
+
+📝 নোট
+সোর্স ট্যাগিং .vite-source-tags.js এর মাধ্যমে enabled
+Arena Analytics কনফিগার করা আছে
+Adsterra Ads যোগ করা আছে
+
+
+📄 লাইসেন্স
+প্রাইভেট প্রজেক্ট - সব অধিকার সংরক্ষিত
+
+
+**সেভ করুন** (Ctrl+S) এবং ফাইলটি ক্লোজ করুন।
+
+---
+
+### **শেষ ৫ মিনিট: পরিবর্তনগুলো commit করুন**
+
+```bash
+# পরিবর্তনগুলো দেখুন
+git status
+
+# সব পরিবর্তন stage করুন
+git add .
+
+# commit করুন
+git commit -m "chore: initial code quality improvements
+
+- Add missing babel dependencies
+- Update README with project documentation
+- Prepare for code quality setup"
+
+# push করুন (optional)
+git push origin improve-quality

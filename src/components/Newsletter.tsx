@@ -1,16 +1,36 @@
 import { useState } from 'react';
 import { Mail, CheckCircle, ArrowRight, Download } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { supabase } from '@/lib/supabase/client'
 
 export default function Newsletter() {
   const [email, setEmail] = useState('');
   const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (email.trim()) {
+    if (!email.trim()) return;
+
+    setLoading(true);
+    setError('');
+
+    const { error: supabaseError } = await supabase
+      .from('subscribers')
+      .insert({ email: email.trim() });
+
+    if (supabaseError) {
+      if (supabaseError.code === '23505') {
+        setError('এই email আগেই subscribe করা আছে!');
+      } else {
+        setError('কিছু একটা সমস্যা হয়েছে, আবার চেষ্টা করো।');
+      }
+      setLoading(false);
+    } else {
       setSubmitted(true);
       setEmail('');
+      setLoading(false);
     }
   };
 
@@ -64,12 +84,32 @@ export default function Newsletter() {
                 </div>
                 <button
                   type="submit"
-                  className="w-full sm:w-auto px-6 py-3 rounded-xl bg-white text-indigo-600 font-semibold text-sm hover:bg-indigo-50 transition-colors flex items-center justify-center gap-2 shadow-lg shadow-black/10"
+                  disabled={loading}
+                  className="w-full sm:w-auto px-6 py-3 rounded-xl bg-white text-indigo-600 font-semibold text-sm hover:bg-indigo-50 transition-colors flex items-center justify-center gap-2 shadow-lg shadow-black/10 disabled:opacity-70 disabled:cursor-not-allowed"
                 >
-                  Start Learning
-                  <ArrowRight size={16} />
+                  {loading ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      Start Learning
+                      <ArrowRight size={16} />
+                    </>
+                  )}
                 </button>
               </form>
+            )}
+
+            {error && (
+              <motion.p
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="text-red-200 text-sm mt-3"
+              >
+                {error}
+              </motion.p>
             )}
 
             <p className="text-white/50 text-xs mt-4">
