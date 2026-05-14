@@ -13,7 +13,7 @@ interface CacheEntry<T> {
 
 class CacheManager {
   private memoryCache = new Map<string, CacheEntry<unknown>>();
-  private readonly STORAGE_PREFIX = 'se_cache_';
+  private readonly STORAGE_PREFIX = "se_cache_";
 
   /**
    * Get from cache — checks memory first, then localStorage
@@ -67,7 +67,9 @@ class CacheManager {
     this.memoryCache.delete(key);
     try {
       localStorage.removeItem(this.STORAGE_PREFIX + key);
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
   }
 
   /**
@@ -87,8 +89,10 @@ class CacheManager {
           keysToRemove.push(k);
         }
       }
-      keysToRemove.forEach(k => localStorage.removeItem(k));
-    } catch { /* ignore */ }
+      keysToRemove.forEach((k) => localStorage.removeItem(k));
+    } catch {
+      /* ignore */
+    }
   }
 
   /**
@@ -102,8 +106,10 @@ class CacheManager {
         const k = localStorage.key(i);
         if (k?.startsWith(this.STORAGE_PREFIX)) keysToRemove.push(k);
       }
-      keysToRemove.forEach(k => localStorage.removeItem(k));
-    } catch { /* ignore */ }
+      keysToRemove.forEach((k) => localStorage.removeItem(k));
+    } catch {
+      /* ignore */
+    }
   }
 
   /**
@@ -126,9 +132,11 @@ class CacheManager {
           keysToRemove.push(k);
         }
       }
-      keysToRemove.forEach(k => localStorage.removeItem(k));
-    } catch { /* ignore */ }
+      keysToRemove.forEach((k) => localStorage.removeItem(k));
+    } catch {
+      /* ignore */
     }
+  }
 }
 
 // Singleton
@@ -136,8 +144,8 @@ export const cache = new CacheManager();
 
 // TTL constants
 export const CACHE_TTL = {
-  POSTS_LIST: 5 * 60 * 1000,     // 5 minutes
-  SINGLE_POST: 10 * 60 * 1000,   // 10 minutes
-  DASHBOARD: 2 * 60 * 1000,      // 2 minutes
+  POSTS_LIST: 5 * 60 * 1000, // 5 minutes
+  SINGLE_POST: 10 * 60 * 1000, // 10 minutes
+  DASHBOARD: 2 * 60 * 1000, // 2 minutes
   AUTH_SESSION: 24 * 60 * 60 * 1000, // 24 hours
 };

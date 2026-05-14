@@ -1,0 +1,7 @@
+dist
+dist - Copy
+node_modules
+node_modules - Copy
+build
+coverage
+*.min.js

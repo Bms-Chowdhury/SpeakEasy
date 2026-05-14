@@ -1,7 +1,13 @@
-export type Level = 'beginner' | 'intermediate' | 'advanced';
-export type PostCategory = 'daily-conversation' | 'job-interview' | 'grammar-tips' | 'real-life-dialogues' | 'vocabulary' | 'speaking-tips';
-export type PostType = 'blog' | 'script';
-export type PostStatus = 'draft' | 'published';
+export type Level = "beginner" | "intermediate" | "advanced";
+export type PostCategory =
+  | "daily-conversation"
+  | "job-interview"
+  | "grammar-tips"
+  | "real-life-dialogues"
+  | "vocabulary"
+  | "speaking-tips";
+export type PostType = "blog" | "script";
+export type PostStatus = "draft" | "published";
 
 export interface Post {
   id: string;
@@ -47,7 +53,7 @@ export interface AdminUser {
   uid: string;
   email: string;
   displayName: string;
-  role: 'admin' | 'editor';
+  role: "admin" | "editor";
 }
 
 export interface CreatePostData {

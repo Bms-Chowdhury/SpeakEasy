@@ -1,6 +1,6 @@
-import { create } from 'zustand';
-import { AdminUser } from '../lib/types';
-import { authApi } from '../lib/api';
+import { create } from "zustand";
+import { AdminUser } from "../lib/types";
+import { authApi } from "../lib/api";
 
 interface AuthState {
   user: AdminUser | null;
@@ -27,11 +27,11 @@ export const useAuthStore = create<AuthState>((set) => ({
         set({ user, isAuthenticated: true, isLoading: false, error: null });
         return true;
       } else {
-        set({ isLoading: false, error: 'Invalid email or password' });
+        set({ isLoading: false, error: "Invalid email or password" });
         return false;
       }
     } catch {
-      set({ isLoading: false, error: 'Login failed. Please try again.' });
+      set({ isLoading: false, error: "Login failed. Please try again." });
       return false;
     }
   },

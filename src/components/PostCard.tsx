@@ -1,9 +1,9 @@
-import { Link } from 'react-router-dom';
-import { Clock, Bookmark, BookmarkCheck } from 'lucide-react';
-import { Post } from '../lib/types';
-import { getCategoryInfo, getLevelInfo } from '../lib/utils';
-import { useBookmarks } from '../lib/context';
-import { motion } from 'framer-motion';
+import { Link } from "react-router-dom";
+import { Clock, Bookmark, BookmarkCheck } from "lucide-react";
+import { Post } from "../lib/types";
+import { getCategoryInfo, getLevelInfo } from "../lib/utils";
+import { useBookmarks } from "../lib/context";
+import { motion } from "framer-motion";
 
 interface PostCardProps {
   post: Post;
@@ -11,7 +11,11 @@ interface PostCardProps {
   featured?: boolean;
 }
 
-export default function PostCard({ post, index = 0, featured = false }: PostCardProps) {
+export default function PostCard({
+  post,
+  index = 0,
+  featured = false,
+}: PostCardProps) {
   const { toggleBookmark, isBookmarked } = useBookmarks();
   const cat = getCategoryInfo(post.category);
   const level = getLevelInfo(post.level);
@@ -41,7 +45,9 @@ export default function PostCard({ post, index = 0, featured = false }: PostCard
             {/* Content overlaid on image */}
             <div className="absolute bottom-0 left-0 right-0 p-6 md:p-10">
               <div className="flex items-center gap-2 mb-3">
-                <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-[11px] font-semibold uppercase tracking-wide ${level.bgColor} ${level.color}`}>
+                <span
+                  className={`inline-flex items-center px-2.5 py-1 rounded-md text-[11px] font-semibold uppercase tracking-wide ${level.bgColor} ${level.color}`}
+                >
                   {level.name}
                 </span>
                 <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-semibold uppercase tracking-wide bg-white/15 backdrop-blur-sm text-white">
@@ -65,11 +71,15 @@ export default function PostCard({ post, index = 0, featured = false }: PostCard
         </Link>
         {/* Bookmark */}
         <button
-          onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleBookmark(post.id); }}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            toggleBookmark(post.id);
+          }}
           className={`absolute top-4 right-4 p-2.5 rounded-xl backdrop-blur-md transition-all duration-200 z-10 ${
             bookmarked
-              ? 'bg-indigo-500/90 text-white shadow-lg shadow-indigo-500/30'
-              : 'bg-black/30 text-white/70 hover:bg-black/50 hover:text-white'
+              ? "bg-indigo-500/90 text-white shadow-lg shadow-indigo-500/30"
+              : "bg-black/30 text-white/70 hover:bg-black/50 hover:text-white"
           }`}
         >
           {bookmarked ? <BookmarkCheck size={16} /> : <Bookmark size={16} />}
@@ -100,7 +110,9 @@ export default function PostCard({ post, index = 0, featured = false }: PostCard
           />
           {/* Level badge on image */}
           <div className="absolute top-3 left-3">
-            <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-[11px] font-semibold uppercase tracking-wide ${level.bgColor} ${level.color} shadow-sm`}>
+            <span
+              className={`inline-flex items-center px-2.5 py-1 rounded-md text-[11px] font-semibold uppercase tracking-wide ${level.bgColor} ${level.color} shadow-sm`}
+            >
               {level.name}
             </span>
           </div>
@@ -133,11 +145,15 @@ export default function PostCard({ post, index = 0, featured = false }: PostCard
 
       {/* Bookmark button */}
       <button
-        onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleBookmark(post.id); }}
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          toggleBookmark(post.id);
+        }}
         className={`absolute top-3 right-3 p-2 rounded-xl backdrop-blur-md transition-all duration-200 z-10 ${
           bookmarked
-            ? 'bg-indigo-500/90 text-white shadow-lg shadow-indigo-500/30'
-            : 'bg-black/25 text-white/70 hover:bg-black/45 hover:text-white'
+            ? "bg-indigo-500/90 text-white shadow-lg shadow-indigo-500/30"
+            : "bg-black/25 text-white/70 hover:bg-black/45 hover:text-white"
         }`}
       >
         {bookmarked ? <BookmarkCheck size={14} /> : <Bookmark size={14} />}

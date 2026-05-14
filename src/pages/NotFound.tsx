@@ -1,11 +1,20 @@
-import { Link } from 'react-router-dom';
-import { Home, Search, BookOpen, MessageSquare } from 'lucide-react';
+import { Link } from "react-router-dom";
+import { Home, Search, BookOpen, MessageSquare } from "lucide-react";
 
 export default function NotFound() {
   const popularPosts = [
-    { title: 'How to Speak English Fast', to: '/blog/how-to-speak-english-fast' },
-    { title: 'Restaurant Dialogue Script', to: '/scripts/ordering-food-at-restaurant-english-dialogue' },
-    { title: 'Grammar Mistakes to Avoid', to: '/blog/grammar-mistakes-advanced-learners-make' },
+    {
+      title: "How to Speak English Fast",
+      to: "/blog/how-to-speak-english-fast",
+    },
+    {
+      title: "Restaurant Dialogue Script",
+      to: "/scripts/ordering-food-at-restaurant-english-dialogue",
+    },
+    {
+      title: "Grammar Mistakes to Avoid",
+      to: "/blog/grammar-mistakes-advanced-learners-make",
+    },
   ];
 
   return (
@@ -18,7 +27,8 @@ export default function NotFound() {
           Page Not Found
         </h1>
         <p className="text-slate-500 dark:text-slate-400 mb-8">
-          Oops! The page you're looking for doesn't exist. Maybe try one of these instead?
+          Oops! The page you're looking for doesn't exist. Maybe try one of
+          these instead?
         </p>
 
         <div className="space-y-3 mb-8">
@@ -28,8 +38,14 @@ export default function NotFound() {
               to={post.to}
               className="flex items-center gap-3 p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 hover:border-indigo-200 dark:hover:border-indigo-800/50 transition-colors"
             >
-              {i === 0 ? <BookOpen size={16} className="text-indigo-600 shrink-0" /> : <MessageSquare size={16} className="text-purple-600 shrink-0" />}
-              <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{post.title}</span>
+              {i === 0 ? (
+                <BookOpen size={16} className="text-indigo-600 shrink-0" />
+              ) : (
+                <MessageSquare size={16} className="text-purple-600 shrink-0" />
+              )}
+              <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                {post.title}
+              </span>
             </Link>
           ))}
         </div>

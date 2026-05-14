@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
-import AdSlot from './AdSlot';
+import { useEffect, useRef, useState } from "react";
+import AdSlot from "./AdSlot";
 
 export default function StickySidebarAd() {
   const sentinelRef = useRef<HTMLDivElement>(null);
@@ -8,11 +8,11 @@ export default function StickySidebarAd() {
 
   // Check desktop via CSS media query (not JS breakpoint)
   useEffect(() => {
-    const mq = window.matchMedia('(min-width: 1024px)');
+    const mq = window.matchMedia("(min-width: 1024px)");
     setIsDesktop(mq.matches);
     const handler = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
-    mq.addEventListener('change', handler);
-    return () => mq.removeEventListener('change', handler);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
   }, []);
 
   // Sticky detection
@@ -25,7 +25,7 @@ export default function StickySidebarAd() {
       ([entry]) => {
         setIsStuck(!entry.isIntersecting);
       },
-      { threshold: 0, rootMargin: '-80px 0px 0px 0px' }
+      { threshold: 0, rootMargin: "-80px 0px 0px 0px" },
     );
 
     observer.observe(sentinel);
@@ -37,7 +37,7 @@ export default function StickySidebarAd() {
   return (
     <aside className="hidden lg:block w-[300px] shrink-0">
       <div ref={sentinelRef} className="h-0" />
-      <div className={`space-y-6 ${isStuck ? 'fixed top-20 w-[300px]' : ''}`}>
+      <div className={`space-y-6 ${isStuck ? "fixed top-20 w-[300px]" : ""}`}>
         <div className="rounded-xl overflow-hidden border border-slate-100 dark:border-slate-800">
           <AdSlot
             slotId="desktop-sidebar-primary"

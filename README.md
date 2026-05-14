@@ -4,7 +4,7 @@
 
 ## 🚀 দ্রুত শুরু
 
-```bash
+````bash
 # ডিপেন্ডেন্সি ইনস্টল
 npm install
 
@@ -74,3 +74,4 @@ git commit -m "chore: initial code quality improvements
 
 # push করুন (optional)
 git push origin improve-quality
+````

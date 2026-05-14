@@ -1,12 +1,12 @@
-import { useState } from 'react';
-import { Mail, CheckCircle, ArrowRight, Download } from 'lucide-react';
-import { motion } from 'framer-motion';
-import { supabase } from '@/lib/supabase/client'
+import { useState } from "react";
+import { Mail, CheckCircle, ArrowRight, Download } from "lucide-react";
+import { motion } from "framer-motion";
+import { supabase } from "@/lib/supabase/client";
 
 export default function Newsletter() {
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState("");
   const [submitted, setSubmitted] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -14,22 +14,22 @@ export default function Newsletter() {
     if (!email.trim()) return;
 
     setLoading(true);
-    setError('');
+    setError("");
 
     const { error: supabaseError } = await supabase
-      .from('subscribers')
+      .from("subscribers")
       .insert({ email: email.trim() });
 
     if (supabaseError) {
-      if (supabaseError.code === '23505') {
-        setError('এই email আগেই subscribe করা আছে!');
+      if (supabaseError.code === "23505") {
+        setError("এই email আগেই subscribe করা আছে!");
       } else {
-        setError('কিছু একটা সমস্যা হয়েছে, আবার চেষ্টা করো।');
+        setError("কিছু একটা সমস্যা হয়েছে, আবার চেষ্টা করো।");
       }
       setLoading(false);
     } else {
       setSubmitted(true);
-      setEmail('');
+      setEmail("");
       setLoading(false);
     }
   };
@@ -57,7 +57,8 @@ export default function Newsletter() {
               Start Learning English Today
             </h2>
             <p className="text-white/80 max-w-lg mx-auto mb-8 text-sm md:text-base">
-              Join 10,000+ learners. Get weekly scripts, tips, and a free PDF with 100 essential English phrases.
+              Join 10,000+ learners. Get weekly scripts, tips, and a free PDF
+              with 100 essential English phrases.
             </p>
 
             {submitted ? (
@@ -67,16 +68,24 @@ export default function Newsletter() {
                 className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-white/20 backdrop-blur-sm text-white"
               >
                 <CheckCircle size={20} />
-                <span className="font-medium">Welcome aboard! Check your email.</span>
+                <span className="font-medium">
+                  Welcome aboard! Check your email.
+                </span>
               </motion.div>
             ) : (
-              <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row items-center gap-3 max-w-md mx-auto">
+              <form
+                onSubmit={handleSubmit}
+                className="flex flex-col sm:flex-row items-center gap-3 max-w-md mx-auto"
+              >
                 <div className="relative flex-1 w-full">
-                  <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <Mail
+                    size={16}
+                    className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
+                  />
                   <input
                     type="email"
                     value={email}
-                    onChange={e => setEmail(e.target.value)}
+                    onChange={(e) => setEmail(e.target.value)}
                     placeholder="Enter your email"
                     required
                     className="w-full pl-10 pr-4 py-3 rounded-xl bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder:text-slate-400 text-sm outline-none focus:ring-2 focus:ring-white/50"

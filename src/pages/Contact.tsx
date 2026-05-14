@@ -1,29 +1,43 @@
-import { useState } from 'react';
-import { Mail, MapPin, Send, CheckCircle, Twitter, Youtube, Instagram, Facebook } from 'lucide-react';
-import { motion } from 'framer-motion';
-import { supabase } from '@/lib/supabase/client';
+import { useState } from "react";
+import {
+  Mail,
+  MapPin,
+  Send,
+  CheckCircle,
+  Twitter,
+  Youtube,
+  Instagram,
+  Facebook,
+} from "lucide-react";
+import { motion } from "framer-motion";
+import { supabase } from "@/lib/supabase/client";
 
 export default function Contact() {
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [form, setForm] = useState({ name: '', email: '', subject: '', message: '' });
+  const [form, setForm] = useState({
+    name: "",
+    email: "",
+    subject: "",
+    message: "",
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      const { error } = await supabase.functions.invoke('send-contact-email', {
+      const { error } = await supabase.functions.invoke("send-contact-email", {
         body: form,
       });
 
       if (error) throw error;
 
       setSubmitted(true);
-      setForm({ name: '', email: '', subject: '', message: '' });
+      setForm({ name: "", email: "", subject: "", message: "" });
     } catch (error) {
-      console.error('Error:', error);
-      alert('মেসেজ পাঠাতে সমস্যা হয়েছে। আবার চেষ্টা করুন।');
+      console.error("Error:", error);
+      alert("মেসেজ পাঠাতে সমস্যা হয়েছে। আবার চেষ্টা করুন।");
     } finally {
       setLoading(false);
     }
@@ -42,7 +56,8 @@ export default function Contact() {
             Get in Touch
           </h1>
           <p className="text-lg text-slate-600 dark:text-slate-400 max-w-xl mx-auto">
-            Have a question, suggestion, or just want to say hi? We'd love to hear from you.
+            Have a question, suggestion, or just want to say hi? We'd love to
+            hear from you.
           </p>
         </motion.div>
 
@@ -56,10 +71,16 @@ export default function Contact() {
           >
             {submitted ? (
               <div className="p-8 rounded-2xl bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-900/30 text-center">
-                <CheckCircle className="text-green-600 mx-auto mb-4" size={48} />
-                <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">Message Sent!</h3>
+                <CheckCircle
+                  className="text-green-600 mx-auto mb-4"
+                  size={48}
+                />
+                <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">
+                  Message Sent!
+                </h3>
                 <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
-                  Thank you for reaching out. We'll get back to you within 24 hours.
+                  Thank you for reaching out. We'll get back to you within 24
+                  hours.
                 </p>
                 <button
                   onClick={() => setSubmitted(false)}
@@ -78,7 +99,9 @@ export default function Contact() {
                     <input
                       type="text"
                       value={form.name}
-                      onChange={e => setForm({ ...form, name: e.target.value })}
+                      onChange={(e) =>
+                        setForm({ ...form, name: e.target.value })
+                      }
                       required
                       className="w-full px-4 py-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white text-sm outline-none focus:border-indigo-400 dark:focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-950/50 transition-all"
                       placeholder="Your name"
@@ -91,7 +114,9 @@ export default function Contact() {
                     <input
                       type="email"
                       value={form.email}
-                      onChange={e => setForm({ ...form, email: e.target.value })}
+                      onChange={(e) =>
+                        setForm({ ...form, email: e.target.value })
+                      }
                       required
                       className="w-full px-4 py-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white text-sm outline-none focus:border-indigo-400 dark:focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-950/50 transition-all"
                       placeholder="your@email.com"
@@ -105,7 +130,9 @@ export default function Contact() {
                   <input
                     type="text"
                     value={form.subject}
-                    onChange={e => setForm({ ...form, subject: e.target.value })}
+                    onChange={(e) =>
+                      setForm({ ...form, subject: e.target.value })
+                    }
                     required
                     className="w-full px-4 py-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white text-sm outline-none focus:border-indigo-400 dark:focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-950/50 transition-all"
                     placeholder="What's this about?"
@@ -117,7 +144,9 @@ export default function Contact() {
                   </label>
                   <textarea
                     value={form.message}
-                    onChange={e => setForm({ ...form, message: e.target.value })}
+                    onChange={(e) =>
+                      setForm({ ...form, message: e.target.value })
+                    }
                     required
                     rows={5}
                     className="w-full px-4 py-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white text-sm outline-none focus:border-indigo-400 dark:focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-950/50 transition-all resize-none"
@@ -130,7 +159,7 @@ export default function Contact() {
                   className="w-full px-6 py-3 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold text-sm hover:from-indigo-700 hover:to-purple-700 transition-all shadow-lg shadow-indigo-500/25 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
                 >
                   <Send size={16} />
-                  {loading ? 'Sending...' : 'Send Message'}
+                  {loading ? "Sending..." : "Send Message"}
                 </button>
               </form>
             )}
@@ -146,24 +175,40 @@ export default function Contact() {
           >
             {/* Contact Info Card */}
             <div className="p-6 rounded-2xl bg-blue-50 dark:bg-gray-800 border border-slate-200/80 dark:border-slate-800">
-              <h3 className="font-semibold text-slate-900 dark:text-white mb-4">Contact Info</h3>
+              <h3 className="font-semibold text-slate-900 dark:text-white mb-4">
+                Contact Info
+              </h3>
               <div className="space-y-4">
                 <div className="flex items-start gap-3">
                   <div className="w-8 h-8 rounded-lg bg-indigo-100 dark:bg-indigo-950/50 flex items-center justify-center shrink-0">
-                    <Mail size={14} className="text-indigo-600 dark:text-indigo-400" />
+                    <Mail
+                      size={14}
+                      className="text-indigo-600 dark:text-indigo-400"
+                    />
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-slate-900 dark:text-white">Email</p>
-                    <p className="text-sm text-slate-500 dark:text-slate-400">hello@speakeasy.com</p>
+                    <p className="text-sm font-medium text-slate-900 dark:text-white">
+                      Email
+                    </p>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">
+                      hello@speakeasy.com
+                    </p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
                   <div className="w-8 h-8 rounded-lg bg-purple-100 dark:bg-purple-950/50 flex items-center justify-center shrink-0">
-                    <MapPin size={14} className="text-purple-600 dark:text-purple-400" />
+                    <MapPin
+                      size={14}
+                      className="text-purple-600 dark:text-purple-400"
+                    />
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-slate-900 dark:text-white">Location</p>
-                    <p className="text-sm text-slate-500 dark:text-slate-400">Available worldwide 🌍</p>
+                    <p className="text-sm font-medium text-slate-900 dark:text-white">
+                      Location
+                    </p>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">
+                      Available worldwide 🌍
+                    </p>
                   </div>
                 </div>
               </div>
@@ -171,23 +216,45 @@ export default function Contact() {
 
             {/* Follow Us Card */}
             <div className="p-6 rounded-2xl bg-blue-50 dark:bg-gray-800 border border-slate-200/80 dark:border-slate-800">
-              <h3 className="font-semibold text-slate-900 dark:text-white mb-4">Follow Us</h3>
+              <h3 className="font-semibold text-slate-900 dark:text-white mb-4">
+                Follow Us
+              </h3>
               <div className="space-y-3">
-                <a href="#" className="flex items-center gap-3 p-2 rounded-lg hover:bg-white/50 dark:hover:bg-slate-700/50 transition-colors">
+                <a
+                  href="#"
+                  className="flex items-center gap-3 p-2 rounded-lg hover:bg-white/50 dark:hover:bg-slate-700/50 transition-colors"
+                >
                   <Facebook size={16} className="text-blue-500" />
-                  <span className="text-sm text-slate-600 dark:text-slate-400">Facebook</span>
+                  <span className="text-sm text-slate-600 dark:text-slate-400">
+                    Facebook
+                  </span>
                 </a>
-                <a href="#" className="flex items-center gap-3 p-2 rounded-lg hover:bg-white/50 dark:hover:bg-slate-700/50 transition-colors">
+                <a
+                  href="#"
+                  className="flex items-center gap-3 p-2 rounded-lg hover:bg-white/50 dark:hover:bg-slate-700/50 transition-colors"
+                >
                   <Twitter size={16} className="text-blue-500" />
-                  <span className="text-sm text-slate-600 dark:text-slate-400">Twitter</span>
+                  <span className="text-sm text-slate-600 dark:text-slate-400">
+                    Twitter
+                  </span>
                 </a>
-                <a href="#" className="flex items-center gap-3 p-2 rounded-lg hover:bg-white/50 dark:hover:bg-slate-700/50 transition-colors">
+                <a
+                  href="#"
+                  className="flex items-center gap-3 p-2 rounded-lg hover:bg-white/50 dark:hover:bg-slate-700/50 transition-colors"
+                >
                   <Youtube size={16} className="text-red-500" />
-                  <span className="text-sm text-slate-600 dark:text-slate-400">YouTube</span>
+                  <span className="text-sm text-slate-600 dark:text-slate-400">
+                    YouTube
+                  </span>
                 </a>
-                <a href="#" className="flex items-center gap-3 p-2 rounded-lg hover:bg-white/50 dark:hover:bg-slate-700/50 transition-colors">
+                <a
+                  href="#"
+                  className="flex items-center gap-3 p-2 rounded-lg hover:bg-white/50 dark:hover:bg-slate-700/50 transition-colors"
+                >
                   <Instagram size={16} className="text-pink-500" />
-                  <span className="text-sm text-slate-600 dark:text-slate-400">Instagram</span>
+                  <span className="text-sm text-slate-600 dark:text-slate-400">
+                    Instagram
+                  </span>
                 </a>
               </div>
             </div>

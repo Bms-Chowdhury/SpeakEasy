@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from "react";
 
 interface AdSlotProps {
   slotId: string;
@@ -14,11 +14,11 @@ interface AdSlotProps {
 
 export default function AdSlot({
   slotId,
-  width = '100%',
-  height = '90px',
-  className = '',
-  label = 'Advertisement',
-  adKey = '',
+  width = "100%",
+  height = "90px",
+  className = "",
+  label = "Advertisement",
+  adKey = "",
   adWidth = 728,
   adHeight = 90,
   lazyLoad = true,
@@ -40,7 +40,7 @@ export default function AdSlot({
           observer.disconnect();
         }
       },
-      { rootMargin: '200px 0px' }
+      { rootMargin: "200px 0px" },
     );
 
     observer.observe(el);
@@ -61,29 +61,29 @@ export default function AdSlot({
       return;
     }
 
-    container.innerHTML = '';
+    container.innerHTML = "";
 
     // Set global atOptions
     (window as any).atOptions = {
       key: adKey,
-      format: 'iframe',
+      format: "iframe",
       height: adHeight,
       width: adWidth,
       params: {},
     };
 
     // Script 1: Declare atOptions (with CF bypass)
-    const script1 = document.createElement('script');
-    script1.setAttribute('data-cfasync', 'false');
+    const script1 = document.createElement("script");
+    script1.setAttribute("data-cfasync", "false");
     script1.textContent = `
       window.atOptions = ${JSON.stringify((window as any).atOptions)};
     `;
 
     // Script 2: Adsterra invoke (with CF bypass)
-    const script2 = document.createElement('script');
+    const script2 = document.createElement("script");
     script2.src = `https://www.highperformanceformat.com/${adKey}/invoke.js`;
     script2.async = true;
-    script2.setAttribute('data-cfasync', 'false');
+    script2.setAttribute("data-cfasync", "false");
 
     container.appendChild(script1);
     container.appendChild(script2);
@@ -92,8 +92,8 @@ export default function AdSlot({
     console.log(`[AdSlot] Injected ${slotId} with key ${adKey}`);
   }, [isVisible, adKey, adHeight, adWidth, slotId]);
 
-  const widthStyle = typeof width === 'number' ? `${width}px` : width;
-  const heightStyle = typeof height === 'number' ? `${height}px` : height;
+  const widthStyle = typeof width === "number" ? `${width}px` : width;
+  const heightStyle = typeof height === "number" ? `${height}px` : height;
 
   return (
     <div
@@ -111,7 +111,9 @@ export default function AdSlot({
           <span className="text-[10px] font-medium uppercase tracking-widest text-slate-400 dark:text-slate-500">
             {label}
           </span>
-          <span className="text-[9px] text-slate-300 dark:text-slate-600">{slotId}</span>
+          <span className="text-[9px] text-slate-300 dark:text-slate-600">
+            {slotId}
+          </span>
         </div>
       )}
     </div>

@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, Search, Sun, Moon, Bookmark } from 'lucide-react';
-import { useTheme } from '../lib/context';
-import { useBookmarks } from '../lib/context';
-import SearchModal from './SearchModal';
+import { useState, useEffect } from "react";
+import { Link, useLocation } from "react-router-dom";
+import { Menu, X, Search, Sun, Moon, Bookmark } from "lucide-react";
+import { useTheme } from "../lib/context";
+import { useBookmarks } from "../lib/context";
+import SearchModal from "./SearchModal";
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
@@ -13,38 +13,48 @@ export default function Navbar() {
   const { bookmarks } = useBookmarks();
   const location = useLocation();
 
+  // ✅ FIX 1: Remove the unused eslint-disable comment
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 20);
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  },
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  []);
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []); // No eslint-disable needed
 
+  // ✅ FIX 2: REMOVE this entire useEffect - it's not needed
+  // Closing mobile menu on location change is optional
+  // If you want to keep it, use this pattern instead:
   useEffect(() => {
-    setIsOpen(false);
-  }, [location]);
+    // Only close if menu is open (prevents unnecessary rerenders)
+    if (isOpen) {
+      setIsOpen(false);
+    }
+  }, [location, isOpen]);
 
+  // ✅ FIX 3: Keyboard shortcut - no changes needed, this is correct
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
         e.preventDefault();
         setIsSearchOpen(true);
       }
+      // Optional: Close search on Escape
+      if (e.key === "Escape" && isSearchOpen) {
+        setIsSearchOpen(false);
+      }
     };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isSearchOpen]);
 
   const navLinks = [
-    { to: '/', label: 'Home' },
-    { to: '/blog', label: 'Blog' },
-    { to: '/about', label: 'About' },
-    { to: '/contact', label: 'Contact' },
+    { to: "/", label: "Home" },
+    { to: "/blog", label: "Blog" },
+    { to: "/about", label: "About" },
+    { to: "/contact", label: "Contact" },
   ];
 
   const isActive = (path: string) => {
-    if (path === '/') return location.pathname === '/';
+    if (path === "/") return location.pathname === "/";
     return location.pathname.startsWith(path);
   };
 
@@ -53,8 +63,8 @@ export default function Navbar() {
       <nav
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
           isScrolled
-            ? 'bg-white/80 dark:bg-slate-950/80 backdrop-blur-xl shadow-sm border-b border-slate-200/50 dark:border-slate-800/50'
-            : 'bg-transparent'
+            ? "bg-white/80 dark:bg-slate-950/80 backdrop-blur-xl shadow-sm border-b border-slate-200/50 dark:border-slate-800/50"
+            : "bg-transparent"
         }`}
       >
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
@@ -65,20 +75,23 @@ export default function Navbar() {
                 E
               </div>
               <span className="font-bold text-lg text-slate-900 dark:text-white">
-                Speak<span className="text-indigo-600 dark:text-indigo-400">Easy</span>
+                Speak
+                <span className="text-indigo-600 dark:text-indigo-400">
+                  Easy
+                </span>
               </span>
             </Link>
 
             {/* Desktop Nav */}
             <div className="hidden md:flex items-center gap-1">
-              {navLinks.map(link => (
+              {navLinks.map((link) => (
                 <Link
                   key={link.to}
                   to={link.to}
                   className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
                     isActive(link.to)
-                      ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/30'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/50'
+                      ? "text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/30"
+                      : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/50"
                   }`}
                 >
                   {link.label}
@@ -94,7 +107,9 @@ export default function Navbar() {
               >
                 <Search size={14} />
                 <span className="hidden lg:inline">Search</span>
-                <kbd className="hidden lg:inline text-xs bg-white dark:bg-slate-900 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700">⌘K</kbd>
+                <kbd className="hidden lg:inline text-xs bg-white dark:bg-slate-900 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700">
+                  ⌘K
+                </kbd>
               </button>
               <Link
                 to="/blog"
@@ -144,18 +159,20 @@ export default function Navbar() {
         {/* Mobile Menu */}
         <div
           className={`md:hidden transition-all duration-300 overflow-hidden ${
-            isOpen ? 'max-h-96 border-t border-slate-200/50 dark:border-slate-800/50' : 'max-h-0'
+            isOpen
+              ? "max-h-96 border-t border-slate-200/50 dark:border-slate-800/50"
+              : "max-h-0"
           }`}
         >
           <div className="bg-white/95 dark:bg-slate-950/95 backdrop-blur-xl px-4 py-3 space-y-1">
-            {navLinks.map(link => (
+            {navLinks.map((link) => (
               <Link
                 key={link.to}
                 to={link.to}
                 className={`block px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                   isActive(link.to)
-                    ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/30'
-                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50'
+                    ? "text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/30"
+                    : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50"
                 }`}
               >
                 {link.label}
@@ -171,7 +188,10 @@ export default function Navbar() {
           </div>
         </div>
       </nav>
-      <SearchModal isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
+      <SearchModal
+        isOpen={isSearchOpen}
+        onClose={() => setIsSearchOpen(false)}
+      />
     </>
   );
 }

@@ -1,5 +1,5 @@
-import DesktopAdSlot from './DesktopAdSlot';
-import MobileAdSlot from './MobileAdSlot';
+import DesktopAdSlot from "./DesktopAdSlot";
+import MobileAdSlot from "./MobileAdSlot";
 
 interface FeedAdProps {
   position: number;

@@ -1,27 +1,27 @@
-import { useState, useEffect } from 'react';
-import { X } from 'lucide-react';
-import MobileAdSlot from './MobileAdSlot';
+import { useState, useEffect } from "react";
+import { X } from "lucide-react";
+import MobileAdSlot from "./MobileAdSlot";
 
 export default function StickyBottomMobileAd() {
   const [isDismissed, setIsDismissed] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
-    const mq = window.matchMedia('(max-width: 767px)');
+    const mq = window.matchMedia("(max-width: 767px)");
     setIsMobile(mq.matches);
     const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
-    mq.addEventListener('change', handler);
-    return () => mq.removeEventListener('change', handler);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
   }, []);
 
   useEffect(() => {
-    const dismissed = sessionStorage.getItem('sticky-bottom-ad-dismissed');
-    if (dismissed === 'true') setIsDismissed(true);
+    const dismissed = sessionStorage.getItem("sticky-bottom-ad-dismissed");
+    if (dismissed === "true") setIsDismissed(true);
   }, []);
 
   const handleDismiss = () => {
     setIsDismissed(true);
-    sessionStorage.setItem('sticky-bottom-ad-dismissed', 'true');
+    sessionStorage.setItem("sticky-bottom-ad-dismissed", "true");
   };
 
   if (!isMobile || isDismissed) return null;

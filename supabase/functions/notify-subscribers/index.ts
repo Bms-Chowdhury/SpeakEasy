@@ -1,6 +1,6 @@
 // @ts-nocheck
 // @ts-ignore - Deno environment
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 interface Subscriber {
   email: string;
@@ -17,31 +17,31 @@ interface NotificationPayload {
 Deno.serve(async (req: Request) => {
   try {
     // Only allow POST requests
-    if (req.method !== 'POST') {
-      return new Response(
-        JSON.stringify({ error: 'Method not allowed' }),
-        { status: 405, headers: { 'Content-Type': 'application/json' } }
-      );
+    if (req.method !== "POST") {
+      return new Response(JSON.stringify({ error: "Method not allowed" }), {
+        status: 405,
+        headers: { "Content-Type": "application/json" },
+      });
     }
 
     // Get authorization header
-    const authHeader = req.headers.get('Authorization');
+    const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       return new Response(
-        JSON.stringify({ error: 'No authorization header' }),
-        { status: 401, headers: { 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: "No authorization header" }),
+        { status: 401, headers: { "Content-Type": "application/json" } },
       );
     }
 
     // Initialize Supabase client
     const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
       {
         global: {
           headers: { Authorization: authHeader },
         },
-      }
+      },
     );
 
     // Parse request body
@@ -50,25 +50,25 @@ Deno.serve(async (req: Request) => {
 
     if (!subject || !content) {
       return new Response(
-        JSON.stringify({ error: 'Subject and content are required' }),
-        { status: 400, headers: { 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: "Subject and content are required" }),
+        { status: 400, headers: { "Content-Type": "application/json" } },
       );
     }
 
     // Get all subscribers
     const { data: subscribers, error: fetchError } = await supabaseClient
-      .from('subscribers')
-      .select('email');
+      .from("subscribers")
+      .select("email");
 
     if (fetchError) {
       throw new Error(`Failed to fetch subscribers: ${fetchError.message}`);
     }
 
     if (!subscribers || subscribers.length === 0) {
-      return new Response(
-        JSON.stringify({ message: 'No subscribers found' }),
-        { status: 200, headers: { 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ message: "No subscribers found" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
     }
 
     // Send emails using Resend
@@ -76,7 +76,7 @@ Deno.serve(async (req: Request) => {
 
     // Log notification to database
     const { error: logError } = await supabaseClient
-      .from('notifications')
+      .from("notifications")
       .insert({
         subject,
         content,
@@ -86,7 +86,7 @@ Deno.serve(async (req: Request) => {
       });
 
     if (logError) {
-      console.error('Failed to log notification:', logError);
+      console.error("Failed to log notification:", logError);
     }
 
     return new Response(
@@ -95,31 +95,31 @@ Deno.serve(async (req: Request) => {
         message: `Notification sent to ${subscribers.length} subscribers`,
         results: emailResults,
       }),
-      { status: 200, headers: { 'Content-Type': 'application/json' } }
+      { status: 200, headers: { "Content-Type": "application/json" } },
     );
   } catch (error) {
-    console.error('Error:', error);
+    console.error("Error:", error);
     return new Response(
-      JSON.stringify({ 
-        error: 'Internal server error',
-        details: error instanceof Error ? error.message : 'Unknown error'
+      JSON.stringify({
+        error: "Internal server error",
+        details: error instanceof Error ? error.message : "Unknown error",
       }),
-      { status: 500, headers: { 'Content-Type': 'application/json' } }
+      { status: 500, headers: { "Content-Type": "application/json" } },
     );
   }
 });
 
 // Email sending function using Resend
 async function sendEmails(
-  subscribers: Subscriber[], 
-  subject: string, 
-  content: string
+  subscribers: Subscriber[],
+  subject: string,
+  content: string,
 ): Promise<{ success: string[]; failed: string[] }> {
-  const resendApiKey = Deno.env.get('RESEND_API_KEY');
-  
+  const resendApiKey = Deno.env.get("RESEND_API_KEY");
+
   if (!resendApiKey) {
-    console.warn('RESEND_API_KEY not configured');
-    return { success: [], failed: subscribers.map(s => s.email) };
+    console.warn("RESEND_API_KEY not configured");
+    return { success: [], failed: subscribers.map((s) => s.email) };
   }
 
   const results = {
@@ -133,14 +133,14 @@ async function sendEmails(
     const batch = subscribers.slice(i, i + batchSize);
     const promises = batch.map(async (subscriber) => {
       try {
-        const response = await fetch('https://api.resend.com/emails', {
-          method: 'POST',
+        const response = await fetch("https://api.resend.com/emails", {
+          method: "POST",
           headers: {
-            'Authorization': `Bearer ${resendApiKey}`,
-            'Content-Type': 'application/json',
+            Authorization: `Bearer ${resendApiKey}`,
+            "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            from: 'Your App <notifications@yourapp.com>',
+            from: "Your App <notifications@yourapp.com>",
             to: [subscriber.email],
             subject: subject,
             html: content,
@@ -151,7 +151,10 @@ async function sendEmails(
           results.success.push(subscriber.email);
         } else {
           results.failed.push(subscriber.email);
-          console.error(`Failed to send to ${subscriber.email}:`, await response.text());
+          console.error(
+            `Failed to send to ${subscriber.email}:`,
+            await response.text(),
+          );
         }
       } catch (error) {
         results.failed.push(subscriber.email);
@@ -160,10 +163,10 @@ async function sendEmails(
     });
 
     await Promise.all(promises);
-    
+
     // Rate limiting: wait 1 second between batches
     if (i + batchSize < subscribers.length) {
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise((resolve) => setTimeout(resolve, 1000));
     }
   }
 
